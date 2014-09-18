@@ -1,13 +1,13 @@
 	// Constructor for Shape objects to hold data for all drawn objects.
 	// For now they will just be defined as rectangles.
-	function Shape(x, y, w, h, fill) {
-	  // This is a very simple and unsafe constructor. All we're doing is checking if the values exist.
-	  // "x || 0" just means "if there is a value for x, use that. Otherwise use 0."
-	  // But we aren't checking anything else! We could put "Lalala" for the value of x 
+	function Shape(x, y, w, h, id, fill) {
 	  this.x = x || 0;
 	  this.y = y || 0;
 	  this.w = w || 1;
 	  this.h = h || 1;
+    this.id = id || 0;
+    this.posX = 0;
+    this.posY = 0;
 	  this.fill = fill || '#AAAAAA';
 	}
 
@@ -25,9 +25,19 @@
 	          (this.y <= my) && (this.y + this.h >= my);
 	}
 
-  function CanvasState(canvas) {
-    // **** First some setup! ****
-    
+
+  function Board(canvas){
+    this.BOARD_COLS = 8;
+    this.BOARD_ROWS = 8;
+
+    this.tiles = [];
+    this.selectedTiles = [];
+
+    this.offsetX = this.offsetY = 4;
+    this.tileWidth = this.tileHeight = 90;
+    this.tilesColor = ['lightblue', 'lightgreen', 'yellow', 'violet'];
+
+
     this.canvas = canvas;
     this.width = canvas.width;
     this.height = canvas.height;
@@ -56,73 +66,136 @@
     // the current selected object. In the future we could turn this into an array for multiple selection
     this.selection = null;
     
-    // this.
     // **** Then events! ****
-    
-    // This is an example of a closure!
-    // Right here "this" means the CanvasState. But we are making events on the Canvas itself,
-    // and when the events are fired on the canvas the variable "this" is going to mean the canvas!
-    // Since we still want to use this particular CanvasState in the events we have to save a reference to it.
-    // This is our reference!
     var myState = this;
     
     //fixes a problem where double clicking causes text to get selected on the canvas
-    canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false);
-   
-    canvas.addEventListener('click', function(e) {
-      var mouse = myState.getMouse(e);
-      var mx = mouse.x;
-      var my = mouse.y;
-      var shapes = myState.shapes;
-      var l = shapes.length;
-      for (var i = l-1; i >= 0; i--) {
-        if (shapes[i].contains(mx, my)) {
-          var mySel = shapes[i];
+    canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
+    canvas.addEventListener('click', function(e) { myState.selectTile(e); }, true);
+
+    this.selectionColor = '#000000';
+    this.selectionWidth = 2;
+  }
+
+
+  Board.prototype.selectTile = function(e) {
+    var mouse = this.getMouse(e);
+    var mx = mouse.x;
+    var my = mouse.y;
+    var shapes = this.shapes;
+
+    var st = this.selectedTiles;
+
+    for (var i = 0; i < this.BOARD_ROWS; i++){
+      for (var j = 0; j < this.BOARD_COLS; j++){
+        if (shapes[i][j].contains(mx, my)) {
+          var mySel = shapes[i][j];
           // Keep track of where in the object we clicked
           // so we can move it smoothly (see mousemove)
-          myState.selection = mySel;
-          myState.valid = false;
-    
-          // console.log(mySel);
-          // swapTiles(mySel, shapes[i+1])
+          this.selection = mySel;
+          this.valid = false;
 
-        // var nextIndex = i + 1;
-        // console.log(nextIndex); 
+          this.draw();
+          st.push(mySel);
 
-        // var prevIndex = i - 1;
-        // console.log(prevIndex)
+          if (st.length == 2){
+
+            if (st[0].id == st[1].id){
+              console.log('same');
+            } else if (Math.abs(st[0].posY - st[1].posY) == 1 && st[0].posX == st[1].posX){
+              console.log('neib');
+              this.swapTiles(st[0], st[1]);
+              this.selection = null;
+              this.draw();
+            }
+
+            st.shift();
+          } 
+
+          if (st.length > 2){
+            st.length = 2; 
+          };
 
           return;
         }
       }
+    }
 
-
-      // havent returned means we have failed to select anything.
-      // If there was an object selected, we deselect it
-      if (myState.selection) {
-        myState.selection = null;
-        myState.valid = false; // Need to clear the old selection border
-      }
-    }, true);
-
-    this.selectionColor = '#000000';
-    this.selectionWidth = 3;  
-    this.interval = 30;
-    setInterval(function() { myState.draw(); }, myState.interval);
+    if 
   }
 
-  CanvasState.prototype.addShape = function(shape) {
-    this.shapes.push(shape);
+      function clone(destination, source) {
+        for (var property in source) {
+            if (typeof source[property] === "object" && source[property] !== null && destination[property]) { 
+                clone(destination[property], source[property]);
+            } else {
+                destination[property] = source[property];
+            }
+        }
+    };
+
+  Board.prototype.swapTiles = function(t1, t2){
+    var tempX = t1.x;
+    t1.x = t2.x;
+    t2.x = tempX;
+
+    var tempY = t1.y;
+    t1.y = t2.y;
+    t2.y = tempY;
+
+    var tempPosX = t1.posX;
+    t1.posX = t2.posX;
+    t2.posX = tempPosX;
+
+    var tempPosY = t1.posY;
+    t1.posY = t2.posY;
+    t2.posY = tempPosY;
+  }
+
+  Board.prototype.spawn = function(){
+    var tw = this.tileWidth;
+    var th = this.tileHeight;
+    var w = tw - this.offsetX;
+    var h = th - this.offsetY;
+
+    for (var i = 0; i < this.BOARD_ROWS; i++){
+      this.shapes[i] = [];
+
+      for (var j = 0; j < this.BOARD_COLS; j++){
+        var posX = i * tw;
+        var posY = j * th;
+        var id = j * this.BOARD_ROWS + i;
+        var color = this.tilesColor[ Math.floor( Math.random() * this.tilesColor.length )];
+
+        this.addShape(new Shape(posX + this.offsetX, posY + this.offsetY, w, h, id, color), i, j)
+      }
+    }
+
+    this.render();
+  }
+
+
+  Board.prototype.render = function(){
+    this.draw();
+  }
+
+
+  Board.prototype.addShape = function(shape, i, j) {
+    shape.posX = j;
+    shape.posY = i;
+    this.shapes[i][j] = shape;
     this.valid = false;
   }
 
-  CanvasState.prototype.clear = function() {
+
+  Board.prototype.clear = function() {
     this.ctx.clearRect(0, 0, this.width, this.height);
   }
 
+
   // While draw is called as often as the INTERVAL variable demands,
   // It only ever does something if the canvas gets invalidated by our code
-  CanvasState.prototype.draw = function() {
+  Board.prototype.draw = function() {
     // if our state is invalid, redraw and validate!
     if (!this.valid) {
       var ctx = this.ctx;
@@ -132,9 +205,10 @@
       // ** Add stuff you want drawn in the background all the time here **
       
       // draw all shapes
-      var l = shapes.length;
-      for (var i = 0; i < l; i++) { 
-        shapes[i].draw(ctx);
+      for (var i = 0; i < this.BOARD_ROWS; i++){
+        for (var j = 0; j < this.BOARD_COLS; j++){
+          shapes[i][j].draw(ctx);
+        }
       }
       
       // draw selection
@@ -144,10 +218,10 @@
         ctx.lineWidth = this.selectionWidth;
         var mySel = this.selection;
         ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
+        this.selectionCount += 1;
       }
       
       // ** Add stuff you want drawn on top all the time here **
-      
       this.valid = true;
     }
   }
@@ -155,7 +229,7 @@
 
   // Creates an object with x and y defined, set to the mouse position relative to the state's canvas
   // If you wanna be super-correct this can be tricky, we have to worry about padding and borders
-  CanvasState.prototype.getMouse = function(e) {
+  Board.prototype.getMouse = function(e) {
     var element = this.canvas, offsetX = 0, offsetY = 0, mx, my;
     
     // Compute the total offset
@@ -178,70 +252,13 @@
     return { x: mx, y: my };
   }
 
+
+
   function init() {
-    var s = new CanvasState(document.getElementById('board'));
-  	var board = new Board(s);
+    // var s = new CanvasState(document.getElementById('board'));
+  	var board = new Board(document.getElementById('board'));
 
     board.spawn();
   }
 
-function Board(s){
-  this.BOARD_COLS = 8;
-  this.BOARD_ROWS = 8;
-
-  this.tiles = [];
-
-  this.s = s;
-
-  this.tileWidth = 90;
-  this.tileHeight = 90;
-  this.tilesColor = ['lightblue', 'lightgreen', 'yellow', 'violet'];
-
-  this.offsetX = 4;
-  this.offsetY = 4;
-}
-
-Board.prototype.spawn = function(){
-    for (var i = 0; i < this.BOARD_ROWS; i++){
-      this.tiles[i] = [];
-      for (var j = 0; j < this.BOARD_COLS; j++){
-        this.tiles[i][j] = this.createTile(i * this.tileWidth, j * this.tileHeight);
-      }
-    }
-
-    this.render(this.s, this.tiles);
-}
-
-Board.prototype.render = function(){
-  console.log(this.tiles)
-  for (var i = 0; i < this.BOARD_ROWS; i++){
-    for (var j = 0; j < this.BOARD_COLS; j++){
-      var t = this.tiles[i][j];
-      var posX = t.position.x;
-      var posY = t.position.y;
-      var w = t.width - this.offsetX;
-      var h = t.height - this.offsetY;
-
-      console.log(posX, posY)
-
-      this.s.addShape(new Shape(posX + this.offsetX, posY + this.offsetY, w, h, t.color))
-    }
-  }
-}
-
-Board.prototype.createTile = function(posX, posY){
-  var tile = {};
-
-  tile.width = this.tileWidth;
-  tile.height = this.tileHeight;
-
-  tile.position = {};
-  tile.position.x = posX;
-  tile.position.y = posY;
-  tile.color = this.tilesColor[ Math.floor( Math.random() * this.tilesColor.length )];
-
-  return tile;
-}
-
-
-window.onload = init();
+  window.onload = init();
