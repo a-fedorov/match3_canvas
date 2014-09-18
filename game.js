@@ -36,7 +36,13 @@
 
     this.offsetX = this.offsetY = 4;
     this.tileWidth = this.tileHeight = 90;
-    this.tilesColor = ['lightblue', 'lightgreen', 'yellow', 'violet'];
+    this.tilesColor = [
+      'rgba(241, 196, 15, .6)',
+      'rgba(46, 204, 113, .6)',
+      'rgba(52, 152, 219, .6)',
+      'rgba(231, 76, 60, .6)',
+      'rgba(155, 89, 182, .6)',
+    ];
 
 
     this.canvas = canvas;
