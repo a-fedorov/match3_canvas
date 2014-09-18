@@ -32,6 +32,7 @@
 
     this.tiles = [];
     this.selectedTiles = [];
+    // this.prevSel = nul
 
     this.offsetX = this.offsetY = 4;
     this.tileWidth = this.tileHeight = 90;
@@ -64,14 +65,14 @@
     this.valid = false; // when set to false, the canvas will redraw everything
     this.shapes = [];  // the collection of things to be drawn
     // the current selected object. In the future we could turn this into an array for multiple selection
-    this.selection = null;
+    this.selection = [];
     
     // **** Then events! ****
     var myState = this;
     
     //fixes a problem where double clicking causes text to get selected on the canvas
     canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
-    canvas.addEventListener('click', function(e) { myState.selectTile(e); }, true);
+    canvas.addEventListener('click', function(e) { myState.selectTile(e); myState.draw();}, true);
 
     this.selectionColor = '#000000';
     this.selectionWidth = 2;
@@ -84,7 +85,7 @@
     var my = mouse.y;
     var shapes = this.shapes;
 
-    var st = this.selectedTiles;
+    // var st = this.selectedTiles;
 
     for (var i = 0; i < this.BOARD_ROWS; i++){
       for (var j = 0; j < this.BOARD_COLS; j++){
@@ -92,23 +93,27 @@
           var mySel = shapes[i][j];
           // Keep track of where in the object we clicked
           // so we can move it smoothly (see mousemove)
-          this.selection = mySel;
+          this.selection.push(mySel);
           this.valid = false;
 
-          this.draw();
-          st.push(mySel);
+          // this.draw();
+          // st.push(mySel);
+          st = this.selection;
 
           if (st.length == 2){
 
             if (st[0].id == st[1].id){
-              console.log('same');
-            } else if (Math.abs(st[0].posY - st[1].posY) == 1 && st[0].posX == st[1].posX){
-              console.log('neib');
+              // console.log('same');
+              this.selection = [];
+            } else if (Math.abs(st[0].posY - st[1].posY) == 1 && st[0].posX == st[1].posX || 
+                       Math.abs(st[0].posX - st[1].posX) == 1 && st[0].posY == st[1].posY){
+              // console.log('neib');
+
               this.swapTiles(st[0], st[1]);
-              this.selection = null;
-              this.draw();
+              this.selection = [];
             }
 
+            // this.draw();
             st.shift();
           } 
 
@@ -121,7 +126,12 @@
       }
     }
 
-    if 
+    // havent returned means we have failed to select anything.
+    // If there was an object selected, we deselect it
+    if (this.selection) {
+      this.selection = [];
+      this.valid = false; // Need to clear the old selection border
+    }
   }
 
       function clone(destination, source) {
@@ -213,12 +223,16 @@
       
       // draw selection
       // right now this is just a stroke along the edge of the selected Shape
-      if (this.selection != null) {
-        ctx.strokeStyle = this.selectionColor;
-        ctx.lineWidth = this.selectionWidth;
-        var mySel = this.selection;
-        ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
-        this.selectionCount += 1;
+      var length = this.selection.length;
+      // if (length > 2){ length = 2}
+      if (length > 0) {
+        for (var i = 0; i < length; i++){
+          var mySel = this.selection[i];
+
+          ctx.lineWidth = this.selectionWidth;
+          ctx.strokeStyle = this.selectionColor;
+          ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
+        }
       }
       
       // ** Add stuff you want drawn on top all the time here **
