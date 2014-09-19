@@ -4,15 +4,28 @@
   var topPanel = document.querySelector('.topPanel');
 
   function showMenu(){
-    menu.style.display = 'block';
-    canvasContainer.style.display = 'none';
-    topPanel.style.display = 'none';
+    menu.style.visibility = 'visible';
+    menu.style.opacity = '1';
+
+    
+    canvasContainer.style.opacity = '0';
+    canvasContainer.style.visibility = 'hidden';
+
+    topPanel.style.visibility = 'hidden';
+    topPanel.style.opacity = '0';
+
   }
 
   function startGame(){
-    menu.style.display = 'none';    
-    canvasContainer.style.display = 'block';
-    topPanel.style.display = 'block';
+    menu.style.visibility = 'hidden';
+    menu.style.opacity = '0';
+
+    
+    canvasContainer.style.visibility = 'visible';
+    canvasContainer.style.opacity = '1';
+
+    topPanel.style.visibility = 'visible';
+    topPanel.style.opacity = '1';
 
     init();
   }

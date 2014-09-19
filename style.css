@@ -1,22 +1,28 @@
 body { 
 	margin: 0;
 	padding: 0;
-	background-color: #eee;
-
 	font-family: sans-serif;
-
+	background-color: #eee;
 }
 
 .topPanel {
+	/*width: 60%;*/
+
 	position: relative;
-	display: none;
+	margin: 0 auto;
+	margin-bottom: 20px;
+	/*border-bottom: 1px solid #000;*/
+
+	opacity: 0;
+	visibility: hidden;
+	transition: all .3s linear;
 }
 
 .score {
-	text-align: center;
 	margin: 0 auto;
 	padding: 10px 10px;
 	font-size: 28px;
+	text-align: center;
 }
 
 .exit {
@@ -34,13 +40,16 @@ body {
 .exit a:visited {
 	color: #000;
 	text-decoration: none;
-
 }
 
 .container {
 	position: relative;
 	text-align: center;
-	display: none;
+
+	opacity: 0;
+	visibility: hidden;
+	transition: all .5s ease-out;
+
 }
 
 /*Центрирование по вертикали и горизонтали*/
@@ -49,16 +58,16 @@ canvas#board {
 }
 
 nav {
-	/*position: relative;*/
-	display: block;
+	position: relative;
+
+	opacity: 1;
+	visibility: visible;
+	transition: all .2s ease-in;
 }
 
 ul {
-
-
 	background-color: #eee;
-	/*width: 100%;*/
-	width: 50%;
+	width: 60%;
 	height: auto;
 
 	position: absolute;
@@ -68,7 +77,7 @@ ul {
 	
 	margin: auto;
 	padding: 0;
-	padding-top: 15vh;
+	padding-top: 10%;
 	top: 0; left: 0; right: 0; bottom: 0;
 
 }
@@ -76,12 +85,10 @@ ul {
 ul li {
 	display: block;
 	padding: 15px 20px;
-	background-color: #eee;
-
-	/*border-bottom: 1px solid #ccc;*/
-	border-top: 1px solid #777;
 	
-	/*color: white;*/
+	border-top: 1px solid #777;
+	background-color: #eee;
+	
 	font-family: sans-serif;
 	font-size: 48px;
 	text-transform: uppercase;
@@ -89,7 +96,6 @@ ul li {
 
 ul li:last-child{
 	border-bottom: 1px solid #777;
-	/**/
 }
 
 ul li a, 
