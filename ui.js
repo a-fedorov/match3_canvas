@@ -3,6 +3,12 @@
   var canvasContainer = document.querySelector('.container')
   var topPanel = document.querySelector('.topPanel');
 
+    var back = document.querySelector('.exit');
+  back.addEventListener('click', showMenu, false);
+
+  var start = document.querySelector('.start');
+  start.addEventListener('click', startGame, false);
+
   function showMenu(){
     menu.style.visibility = 'visible';
     menu.style.opacity = '1';
@@ -29,3 +35,4 @@
 
     init();
   }
+
