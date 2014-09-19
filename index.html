@@ -3,27 +3,27 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Match3 Canvas</title>
-
-	<style>
-		body { 
-			margin: 0;
-			padding: 0;
-		}
-
-		/*Центрирование по вертикали и горизонтали*/
-		canvas#board {
-			position: absolute;
-			margin: auto;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-		}
-	</style>
+	
+	<link rel="stylesheet" href="style.css">
 
 </head>
 <body>
-	<canvas id="board" width="725" height="800"></canvas>
+	<nav>
+	<ul class="menu">
+		<li class="item"><a href="#" onclick="startGame()">Start</a></li>
+		<li class="item"><a href="#">Options</a></li>
+		<li class="item"><a href="#">Highscore</a></li>
+	</ul>
+</nav>
+
+	<div class="topPanel">
+		<p class="score">Score: 0</p>
+		<p class="exit"><a href="#" onclick="showMenu()">Back</a></p>
+	</div>
+	<div class="container">
+		<canvas id="board" width="725" height="725"></canvas>
+	</div>
+	<script src="ui.js"></script>
 	<script src="game.js"></script>
 </body>
 </html>
