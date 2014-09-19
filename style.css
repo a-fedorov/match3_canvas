@@ -1,0 +1,100 @@
+body { 
+	margin: 0;
+	padding: 0;
+	background-color: #eee;
+
+	font-family: sans-serif;
+
+}
+
+.topPanel {
+	position: relative;
+	display: none;
+}
+
+.score {
+	text-align: center;
+	margin: 0 auto;
+	padding: 10px 10px;
+	font-size: 28px;
+}
+
+.exit {
+	position: absolute;
+	top: 0;
+	right: 0;
+
+	margin: 0;
+	padding: 10px 10px;
+
+	font-size: 28px;
+}
+
+.exit a,
+.exit a:visited {
+	color: #000;
+	text-decoration: none;
+
+}
+
+.container {
+	position: relative;
+	text-align: center;
+	display: none;
+}
+
+/*Центрирование по вертикали и горизонтали*/
+canvas#board {
+	margin: 0;
+}
+
+nav {
+	/*position: relative;*/
+	display: block;
+}
+
+ul {
+
+
+	background-color: #eee;
+	/*width: 100%;*/
+	width: 50%;
+	height: auto;
+
+	position: absolute;
+
+	list-style-type: none;
+	text-align: center;
+	
+	margin: auto;
+	padding: 0;
+	padding-top: 15vh;
+	top: 0; left: 0; right: 0; bottom: 0;
+
+}
+
+ul li {
+	display: block;
+	padding: 15px 20px;
+	background-color: #eee;
+
+	/*border-bottom: 1px solid #ccc;*/
+	border-top: 1px solid #777;
+	
+	/*color: white;*/
+	font-family: sans-serif;
+	font-size: 48px;
+	text-transform: uppercase;
+}
+
+ul li:last-child{
+	border-bottom: 1px solid #777;
+	/**/
+}
+
+ul li a, 
+ul li a:visited{
+	text-decoration: none;
+	color: #444;
+}
+
