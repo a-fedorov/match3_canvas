@@ -31,11 +31,10 @@
     this.BOARD_ROWS = 8;
 
     this.tiles = [];
-    this.selectedTiles = [];
-    // this.prevSel = nul
 
-    this.offsetX = this.offsetY = 4;
+    this.offsetX = this.offsetY = 5;
     this.tileWidth = this.tileHeight = 90;
+    
     this.tilesColor = [
       'rgba(241, 196, 15, .6)',
       'rgba(46, 204, 113, .6)',
@@ -43,7 +42,6 @@
       'rgba(231, 76, 60, .6)',
       'rgba(155, 89, 182, .6)',
     ];
-
 
     this.canvas = canvas;
     this.width = canvas.width;
@@ -53,12 +51,11 @@
     // This complicates things a little but but fixes mouse co-ordinate problems
     // when there's a border or padding. See getMouse for more detail
     var stylePaddingLeft, stylePaddingTop, styleBorderLeft, styleBorderTop;
-
     if (document.defaultView && document.defaultView.getComputedStyle) {
-      this.stylePaddingLeft = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingLeft'], 10)      || 0;
-      this.stylePaddingTop  = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingTop'], 10)       || 0;
-      this.styleBorderLeft  = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderLeftWidth'], 10)  || 0;
-      this.styleBorderTop   = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderTopWidth'], 10)   || 0;
+      this.stylePaddingLeft = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingLeft'], 10)     || 0;
+      this.stylePaddingTop  = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingTop'], 10)      || 0;
+      this.styleBorderLeft  = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderLeftWidth'], 10) || 0;
+      this.styleBorderTop   = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderTopWidth'], 10)  || 0;
     }
     // Some pages have fixed-position bars (like the stumbleupon bar) at the top or left of the page
     // They will mess up mouse coordinates and this fixes that
@@ -80,7 +77,7 @@
     canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
     canvas.addEventListener('click', function(e) { myState.selectTile(e); myState.draw();}, true);
 
-    this.selectionColor = '#000000';
+    this.selectionColor = '#000';
     this.selectionWidth = 2;
   }
 
@@ -91,7 +88,7 @@
     var my = mouse.y;
     var shapes = this.shapes;
 
-    // var st = this.selectedTiles;
+    var st = [];
 
     for (var i = 0; i < this.BOARD_ROWS; i++){
       for (var j = 0; j < this.BOARD_COLS; j++){
@@ -102,8 +99,6 @@
           this.selection.push(mySel);
           this.valid = false;
 
-          // this.draw();
-          // st.push(mySel);
           st = this.selection;
 
           if (st.length == 2){
@@ -113,19 +108,16 @@
               this.selection = [];
             } else if (Math.abs(st[0].posY - st[1].posY) == 1 && st[0].posX == st[1].posX || 
                        Math.abs(st[0].posX - st[1].posX) == 1 && st[0].posY == st[1].posY){
-              // console.log('neib');
-
-              this.swapTiles(st[0], st[1]);
+              
+              // console.log('neibour');
+              this.swapTiles(st[0], st[1]);              
               this.selection = [];
             }
 
-            // this.draw();
             st.shift();
           } 
 
-          if (st.length > 2){
-            st.length = 2; 
-          };
+          if (st.length > 2){ st.length = 2; };
 
           return;
         }
@@ -140,15 +132,6 @@
     }
   }
 
-      function clone(destination, source) {
-        for (var property in source) {
-            if (typeof source[property] === "object" && source[property] !== null && destination[property]) { 
-                clone(destination[property], source[property]);
-            } else {
-                destination[property] = source[property];
-            }
-        }
-    };
 
   Board.prototype.swapTiles = function(t1, t2){
     var tempX = t1.x;
@@ -273,12 +256,7 @@
   }
 
 
-
   function init() {
-    // var s = new CanvasState(document.getElementById('board'));
-  	var board = new Board(document.getElementById('board'));
-
+    var board = new Board(document.getElementById('board'));
     board.spawn();
   }
-
-  window.onload = init();
