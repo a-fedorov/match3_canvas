@@ -1,24 +1,26 @@
-	// Constructor for Shape objects to hold data for all drawn objects.
+	var requestId = 0;
+
+  // Constructor for Gem objects to hold data for all drawn objects.
 	// For now they will just be defined as rectangles.
-	function Shape(x, y, w, h, id, fill) {
+	function Gem(x, y, w, h, id, fill) {
 	  this.x = x || 0;
 	  this.y = y || 0;
 	  this.w = w || 1;
 	  this.h = h || 1;
     this.id = id || 0;
-    this.posX = 0;
-    this.posY = 0;
+    this.row = 0;
+    this.col = 0;
 	  this.fill = fill || '#AAAAAA';
 	}
 
 	// Draws this shape to a given context
-	Shape.prototype.draw = function(ctx) {
+	Gem.prototype.draw = function(ctx) {
 	  ctx.fillStyle = this.fill;
 	  ctx.fillRect(this.x, this.y, this.w, this.h);
 	}
 
 	// Determine if a point is inside the shape's bounds
-	Shape.prototype.contains = function(mx, my) {
+	Gem.prototype.contains = function(mx, my) {
 	  // All we have to do is make sure the Mouse X,Y fall in the area between
 	  // the shape's X and (X + Width) and its Y and (Y + Height)
 	  return  (this.x <= mx) && (this.x + this.w >= mx) &&
@@ -30,17 +32,17 @@
     this.BOARD_COLS = 8;
     this.BOARD_ROWS = 8;
 
-    this.tiles = [];
+    this.gems = [];
 
     this.offsetX = this.offsetY = 5;
-    this.tileWidth = this.tileHeight = 90;
+    this.gemWidth = this.gemHeight = 90;
     
-    this.tilesColor = [
-      'rgba(241, 196, 15, .6)',
-      'rgba(46, 204, 113, .6)',
-      'rgba(52, 152, 219, .6)',
-      'rgba(231, 76, 60, .6)',
-      'rgba(155, 89, 182, .6)',
+    this.gemsColor = [
+      'rgba(241, 196, 15, .6)', /* yeloow */
+      'rgba(46, 204, 113, .6)', /* green */
+      'rgba(52, 152, 219, .6)', /* blue */
+      'rgba(231, 76, 60, .6)',  /* red */
+      'rgba(155, 89, 182, .6)', /* violet */
     ];
 
     this.canvas = canvas;
@@ -66,34 +68,41 @@
     // **** Keep track of state! ****
     
     this.valid = false; // when set to false, the canvas will redraw everything
-    this.shapes = [];  // the collection of things to be drawn
+    this.gems = [];  // the collection of things to be drawn
     // the current selected object. In the future we could turn this into an array for multiple selection
     this.selection = [];
     
     // **** Then events! ****
-    var myState = this;
+    var self = this;
     
     //fixes a problem where double clicking causes text to get selected on the canvas
     canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
-    canvas.addEventListener('click', function(e) { myState.selectTile(e); myState.draw();}, true);
+    canvas.addEventListener('click', function(e) { 
+      self.selectGem(e);
+      // self.findAndRemoveMatches();
 
-    this.selectionColor = '#000';
-    this.selectionWidth = 2;
+      if (self.selection.length > 1) self.swapGems(self.selection[0], self.selection[1])
+      // if (!requestId) game.startAnimation();
+    }, true );
+
+
+    this.selectionColor = 'rgba(0,0,0,.8)';
+    this.selectionWidth = 3;
   }
 
 
-  Board.prototype.selectTile = function(e) {
+  Board.prototype.selectGem = function(e) {
     var mouse = this.getMouse(e);
     var mx = mouse.x;
     var my = mouse.y;
-    var shapes = this.shapes;
+    var gems = this.gems;
 
     var st = [];
 
     for (var i = 0; i < this.BOARD_ROWS; i++){
       for (var j = 0; j < this.BOARD_COLS; j++){
-        if (shapes[i][j].contains(mx, my)) {
-          var mySel = shapes[i][j];
+        if (gems[i][j].contains(mx, my)) {
+          var mySel = gems[i][j];
           // Keep track of where in the object we clicked
           // so we can move it smoothly (see mousemove)
           this.selection.push(mySel);
@@ -104,13 +113,16 @@
           if (st.length == 2){
 
             if (st[0].id == st[1].id){
-              // console.log('same');
+              console.log('same');
+              this.countSameColorGems(st[0], 1, 0);
+
               this.selection = [];
-            } else if (Math.abs(st[0].posY - st[1].posY) == 1 && st[0].posX == st[1].posX || 
-                       Math.abs(st[0].posX - st[1].posX) == 1 && st[0].posY == st[1].posY){
+            } else if (Math.abs(st[0].col - st[1].col) == 1 && st[0].row == st[1].row || 
+                       Math.abs(st[0].row - st[1].row) == 1 && st[0].col == st[1].col){
               
               // console.log('neibour');
-              this.swapTiles(st[0], st[1]);              
+              
+              this.swapGems(st[0], st[1]);
               this.selection = [];
             }
 
@@ -124,6 +136,8 @@
       }
     }
 
+
+
     // havent returned means we have failed to select anything.
     // If there was an object selected, we deselect it
     if (this.selection) {
@@ -132,41 +146,158 @@
     }
   }
 
+Board.prototype.getAllGems = function(){
+  return this.gems;
+}
 
-  Board.prototype.swapTiles = function(t1, t2){
-    var tempX = t1.x;
-    t1.x = t2.x;
-    t2.x = tempX;
 
-    var tempY = t1.y;
-    t1.y = t2.y;
-    t2.y = tempY;
+  Board.prototype.swapGems = function(t1, t2){
+    var tweenGemOneX = new TWEEN.Tween(t1).to({x: t2.x}, 500).easing(TWEEN.Easing.Quartic.Out).start();
+    var tweenGemOneY = new TWEEN.Tween(t1).to({y: t2.y}, 500).easing(TWEEN.Easing.Quartic.Out).start();
 
-    var tempPosX = t1.posX;
-    t1.posX = t2.posX;
-    t2.posX = tempPosX;
+    var tweenGemTwoX = new TWEEN.Tween(t2).to({x: t1.x}, 500).easing(TWEEN.Easing.Quartic.Out).start();
+    var tweenGemTwoY = new TWEEN.Tween(t2).to({y: t1.y}, 500).easing(TWEEN.Easing.Quartic.Out).start();
 
-    var tempPosY = t1.posY;
-    t1.posY = t2.posY;
-    t2.posY = tempPosY;
+    // tweenGemOneX.onComplete(function(){
+      // game.stopAnimation();
+    // })
+
+
+    var gems = this.getAllGems();
+    var props = ['x', 'y', 'row', 'col'];
+
+    props.forEach(function(p){
+      var tempProp = t1[p];
+      t1[p] = t2[p];
+      t2[p] = tempProp;
+    })
+
+    gems[t1.row][t1.col] = t1;
+    gems[t2.row][t2.col] = t2;
+
+    this.findAndRemoveMatches();
+
+
+    // tweenGemOneX.repeat(1);
+    // tweenGemTwoX.repeat(1);
+
   }
 
+
+
+  Board.prototype.moveGem = function(){
+
+  }
+
+  Board.prototype.countSameColorGems = function() {
+
+  },
+
+
+  Board.prototype.findAndRemoveMatches = function() {
+    var matches = this.lookForMatches();
+    var gems = this.getAllGems();
+    console.log(matches);
+    for(var i = 0; i < matches.length; i++){
+      var numPoints = (matches[i].length - 1);
+      for(var j = 0; j < matches[i].length; j++){
+        // console.log(matches[i][j].col);
+        gems[matches[i][j].row][matches[i][j].col] = undefined;
+        this.affectAbove(matches[i][j]);
+      }
+    }
+
+
+  }
+
+  Board.prototype.lookForMatches = function() {
+    var matchList = [];
+
+    for(var row = 0; row < this.BOARD_ROWS; row++){
+      for(var col = 0; col < this.BOARD_COLS; col++){
+        var match = this.getMatchHoriz(col, row);
+        if(match.length > 2){
+          matchList.push(match);
+          col += match.length - 1;
+        }
+      }
+    }
+
+    for(var col = 0; col < this.BOARD_COLS; col++){
+      for(var row = 0; row < this.BOARD_ROWS; row++){
+        var match = this.getMatchVert(col, row);
+        if(match.length > 2){
+          matchList.push(match);
+          row += match.length - 1;
+        }
+      }
+    }
+
+    return matchList;
+  }
+
+  Board.prototype.getMatchHoriz = function(col, row){
+    var match = [];
+    var gems = this.getAllGems();
+
+    for(var i = 0; col + i < this.BOARD_COLS; i++){
+      if(gems[col][row].fill == gems[col + i][row].fill){
+        match.push(gems[col + i][row]);
+      } else {
+        return match;
+      }
+    }
+
+    return match;
+  }
+
+  Board.prototype.getMatchVert = function(col, row){
+    var match = [];
+    var gems = this.getAllGems();
+
+    for(var i = 0; row + i < this.BOARD_ROWS; i++){
+      if(gems[col][row].fill == gems[col][row + i].fill){
+        match.push(gems[col][row + i]);
+      } else {
+        return match;
+      }
+    }
+
+    return match;
+  }
+
+
+Board.prototype.affectAbove = function(gem) {
+  var gems = this.getAllGems();
+  for (var row = gem.row - 1; row >= 0; row--){
+    if (gems[row][gem.col] != undefined){
+      // console.log(row, gem.col, gems[row][gem.col])
+      gems[row][gem.col].y += this.gemHeight;
+      // gems[row][gem.col].row += 1;
+      // gems[row + 1][gem.col] = gems[row][gem.col];
+      // gems[row][gem.col] = undefined;
+    }
+  }
+
+  // this.draw();
+}
+
   Board.prototype.spawn = function(){
-    var tw = this.tileWidth;
-    var th = this.tileHeight;
+    var tw = this.gemWidth;
+    var th = this.gemHeight;
     var w = tw - this.offsetX;
     var h = th - this.offsetY;
 
     for (var i = 0; i < this.BOARD_ROWS; i++){
-      this.shapes[i] = [];
+      this.gems[i] = [];
 
       for (var j = 0; j < this.BOARD_COLS; j++){
-        var posX = i * tw;
-        var posY = j * th;
-        var id = j * this.BOARD_ROWS + i;
-        var color = this.tilesColor[ Math.floor( Math.random() * this.tilesColor.length )];
+        var row = j * tw;
+        var col = i * th;
+        var id = i * this.BOARD_ROWS + j;
+        var color = this.gemsColor[ Math.floor( Math.random() * this.gemsColor.length )];
 
-        this.addShape(new Shape(posX + this.offsetX, posY + this.offsetY, w, h, id, color), i, j)
+        this.addGem(new Gem(row + this.offsetX, col + this.offsetY, w, h, id, color), i, j)
       }
     }
 
@@ -179,15 +310,16 @@
   }
 
 
-  Board.prototype.addShape = function(shape, i, j) {
-    shape.posX = j;
-    shape.posY = i;
-    this.shapes[i][j] = shape;
+  Board.prototype.addGem = function(shape, i, j) {
+    shape.row = i;
+    shape.col = j;
+    this.gems[i][j] = shape;
     this.valid = false;
   }
 
 
   Board.prototype.clear = function() {
+
     this.ctx.clearRect(0, 0, this.width, this.height);
   }
 
@@ -195,23 +327,26 @@
   // While draw is called as often as the INTERVAL variable demands,
   // It only ever does something if the canvas gets invalidated by our code
   Board.prototype.draw = function() {
+
     // if our state is invalid, redraw and validate!
-    if (!this.valid) {
+    // if (!this.valid) {
+
       var ctx = this.ctx;
-      var shapes = this.shapes;
+      var gems = this.gems;
       this.clear();
       
       // ** Add stuff you want drawn in the background all the time here **
       
-      // draw all shapes
+      // draw all gems
       for (var i = 0; i < this.BOARD_ROWS; i++){
         for (var j = 0; j < this.BOARD_COLS; j++){
-          shapes[i][j].draw(ctx);
+          if (gems[i][j] == undefined) continue;
+          gems[i][j].draw(ctx);
         }
       }
       
       // draw selection
-      // right now this is just a stroke along the edge of the selected Shape
+      // right now this is just a stroke along the edge of the selected Gem
       var length = this.selection.length;
       // if (length > 2){ length = 2}
       if (length > 0) {
@@ -225,8 +360,8 @@
       }
       
       // ** Add stuff you want drawn on top all the time here **
-      this.valid = true;
-    }
+      // this.valid = true;
+    // }
   }
 
 
@@ -256,7 +391,78 @@
   }
 
 
-  function init() {
-    var board = new Board(document.getElementById('board'));
-    board.spawn();
-  }
+  // function init() {
+  //   var board = new Board(document.getElementById('board'));
+  //   board.spawn();
+
+  //   board.update();
+  // }
+
+
+// Board.prototype.update = function() {
+//   requestAnimationFrame(this.update.bind(this));
+//   TWEEN.update();
+//   this.draw();
+// }
+
+
+// var game = {
+//   board: undefined,
+
+//   init: function(){
+//     this.board = new Board(document.getElementById('board'))
+//     this.board.spawn();
+
+//     console.log('init');
+//     game.start();
+//   },
+
+//   start: function(){
+//     console.log('start');    
+//     requestAnimationFrame(game.update);
+//   },
+
+//   update: function(){
+//     requestAnimationFrame(game.update);
+
+//     TWEEN.update();
+//     game.board.draw();    
+//   },
+
+// }
+
+
+function Game(canvas) {
+  this.board = new Board(canvas);
+}
+
+Game.prototype.start = function() {
+  this.board.spawn();
+  console.log('start');
+
+  // requestId = requestAnimationFrame(this.update.bind(this));
+  this.startAnimation();
+}
+
+
+Game.prototype.update = function() {
+  requestId = requestAnimationFrame(this.update.bind(this));
+
+  // console.log('update');
+
+  TWEEN.update();
+  this.board.draw();
+}
+
+
+Game.prototype.startAnimation = function() {
+  // console.log('start animation');
+  requestId = requestAnimationFrame(this.update.bind(this));
+}
+
+Game.prototype.stopAnimation = function() {
+  // console.log('stop animation')
+  if(requestId)
+    cancelAnimationFrame(requestId);
+  requestId = 0;
+}
