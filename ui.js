@@ -1,5 +1,5 @@
 
-  var menu = document.querySelector('nav');
+  var menu = document.querySelector('.mainPage');
   var canvasContainer = document.querySelector('.container')
   var topPanel = document.querySelector('.topPanel');
 
@@ -13,7 +13,6 @@
     menu.style.visibility = 'visible';
     menu.style.opacity = '1';
 
-    
     canvasContainer.style.opacity = '0';
     canvasContainer.style.visibility = 'hidden';
 
@@ -21,6 +20,9 @@
     topPanel.style.opacity = '0';
 
   }
+
+
+  var game;
 
   function startGame(){
     menu.style.visibility = 'hidden';
@@ -33,6 +35,8 @@
     topPanel.style.visibility = 'visible';
     topPanel.style.opacity = '1';
 
-    init();
+    var canvas = document.getElementById('board');
+    game = new Game(canvas)
+    game.start();
   }
 
