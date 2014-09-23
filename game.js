@@ -2,12 +2,12 @@
 
   // Constructor for Gem objects to hold data for all drawn objects.
 	// For now they will just be defined as rectangles.
-	function Gem(x, y, w, h, id, fill) {
+	function Gem(x, y, w, h, fill) {
 	  this.x = x || 0;
 	  this.y = y || 0;
 	  this.w = w || 1;
 	  this.h = h || 1;
-    this.id = id || 0;
+    // this.id = id || 0;
     this.row = 0;
     this.col = 0;
 	  this.fill = fill || '#AAAAAA';
@@ -36,6 +36,7 @@
 
     this.offsetX = this.offsetY = 5;
     this.gemWidth = this.gemHeight = 90;
+    this.gemSizeSpaced = this.gemWidth + this.offsetX;
 
     this.deletedGem = [];
 
@@ -57,10 +58,10 @@
     // when there's a border or padding. See getMouse for more detail
     var stylePaddingLeft, stylePaddingTop, styleBorderLeft, styleBorderTop;
     if (document.defaultView && document.defaultView.getComputedStyle) {
-      this.stylePaddingLeft = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingLeft'], 10)     || 0;
-      this.stylePaddingTop  = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingTop'], 10)      || 0;
-      this.styleBorderLeft  = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderLeftWidth'], 10) || 0;
-      this.styleBorderTop   = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderTopWidth'], 10)  || 0;
+      this.stylePaddingLeft = parseInt(document.defaultView.getComputedStyle(canvas, undefined)['paddingLeft'], 10)     || 0;
+      this.stylePaddingTop  = parseInt(document.defaultView.getComputedStyle(canvas, undefined)['paddingTop'], 10)      || 0;
+      this.styleBorderLeft  = parseInt(document.defaultView.getComputedStyle(canvas, undefined)['borderLeftWidth'], 10) || 0;
+      this.styleBorderTop   = parseInt(document.defaultView.getComputedStyle(canvas, undefined)['borderTopWidth'], 10)  || 0;
     }
     // Some pages have fixed-position bars (like the stumbleupon bar) at the top or left of the page
     // They will mess up mouse coordinates and this fixes that
@@ -83,7 +84,9 @@
     canvas.addEventListener('click', function(e) { 
       self.selectGem(e);
     // self.refill();
-    console.log(self.gems)
+      self.draw();
+
+    // console.log(self.gems)
 
       // if (self.selection.length > 1) self.swapGems(self.selection[0], self.selection[1])
 
@@ -93,6 +96,83 @@
     this.selectionColor = 'rgba(0,0,0,.8)';
     this.selectionWidth = 3;
   }
+
+  // While draw is called as often as the INTERVAL variable demands,
+  // It only ever does something if the canvas gets invalidated by our code
+  Board.prototype.draw = function() {
+
+    // if our state is invalid, redraw and validate!
+    // if (!this.valid) {
+
+      var ctx = this.ctx;
+      var gems = this.gems;
+      this.clear();
+      
+      // ** Add stuff you want drawn in the background all the time here **
+      
+      // draw all gems
+      for (var i = 0; i < this.BOARD_ROWS; i++){
+        for (var j = 0; j < this.BOARD_COLS; j++){
+          if (gems[i][j] == undefined) continue;
+          gems[i][j].draw(ctx);
+        }
+      }
+      
+      // draw selection
+      // right now this is just a stroke along the edge of the selected Gem
+      var length = this.selection.length;
+      if (length > 0) {
+        for (var i = 0; i < length; i++){
+          var mySel = this.selection[i];
+
+          ctx.lineWidth = this.selectionWidth;
+          ctx.strokeStyle = this.selectionColor;
+          ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
+        }
+      }
+      
+      // ** Add stuff you want drawn on top all the time here **
+      // this.valid = true;
+    // }
+  }
+
+
+  Board.prototype.clear = function() {
+    this.ctx.clearRect(0, 0, this.width, this.height);
+  }
+
+
+  Board.prototype.spawn = function(){
+    var tw = this.gemWidth;
+    var th = this.gemHeight;
+    var w = tw - this.offsetX;
+    var h = th - this.offsetY;
+
+    for (var i = 0; i < this.BOARD_ROWS; i++){
+      this.gems[i] = [];
+
+      for (var j = 0; j < this.BOARD_COLS; j++){
+        var row = j * tw;
+        var col = i * th;
+        var id = i * this.BOARD_ROWS + j;
+        var color = this.gemsColor[ Math.floor( Math.random() * this.gemsColor.length )];
+
+        this.addGem(new Gem(row + this.offsetX, col + this.offsetY, w, h, color), i, j)
+      }
+    }
+  }
+
+
+  Board.prototype.addGem = function(gem, i, j) {
+    gem.row = i;
+    gem.col = j;
+    this.gems[i][j] = gem;
+    this.valid = false;
+  }
+
+
+
+
 
 
   Board.prototype.selectGem = function(e) {
@@ -105,7 +185,7 @@
 
     for (var i = 0; i < this.BOARD_ROWS; i++){
       for (var j = 0; j < this.BOARD_COLS; j++){
-        if (gems[i][j] !== null && gems[i][j].contains(mx, my)) {
+        if (gems[i][j] !== undefined && gems[i][j].contains(mx, my)) {
           var mySel = gems[i][j];
           // Keep track of where in the object we clicked
           // so we can move it smoothly (see mousemove)
@@ -115,7 +195,7 @@
           st = this.selection;
 
           if (st.length == 2){
-            if (st[0].id == st[1].id){
+            if (st[0].row == st[1].row && st[0].col == st[1].col){
               console.log('same');
               console.log(st[0].row, st[0].col, st[0].y)
               this.selection = [];
@@ -191,7 +271,6 @@
   Board.prototype.findAndRemoveMatches = function() {
     var matches = this.lookForMatches();
     var gems = this.getAllGems();
-    var self = this;
 
     for(var i = 0; i < matches.length; i++){
       var numPoints = (matches[i].length - 1);
@@ -199,10 +278,17 @@
       for(var j = 0; j < matches[i].length; j++){
         var m = matches[i][j];
         var newX = -100;
-        if (gems[m.row][m.col] !== null){
-          // var tweenOut = new TWEEN.Tween(gems[m.row][m.col]).to({x: newX}, 500).easing(TWEEN.Easing.Linear.None).start();
-          gems[m.row][m.col] = null;
-          // this.affectAbove(m);
+
+        if (gems[m.row][m.col]){
+          var tweenOut = new TWEEN.Tween(gems[m.row][m.col]).to({x: -100}, 500).easing(TWEEN.Easing.Linear.None).start();
+          
+          var self = this;
+
+          // tweenOut.onComplete(function(){
+            // console.log(m.row, m.col)
+            gems[m.row][m.col] = undefined;
+          // })
+            this.affectAbove(m);
         }
       
       }
@@ -244,7 +330,7 @@
     var gems = this.getAllGems();
 
     for(var i = 0; col + i < this.BOARD_COLS; i++){
-      if(gems[col][row] !== null && gems[col + i][row] !== null &&
+      if(gems[col][row] !== undefined && gems[col + i][row] !== undefined &&
          gems[col][row].fill == gems[col + i][row].fill){
         match.push(gems[col + i][row]);
       } else {
@@ -261,7 +347,7 @@
     var gems = this.getAllGems();
 
     for(var i = 0; row + i < this.BOARD_ROWS; i++){
-      if(gems[col][row] !== null && gems[col][row + i] !== null && 
+      if(gems[col][row] !== undefined && gems[col][row + i] !== undefined && 
          gems[col][row].fill == gems[col][row + i].fill){
         match.push(gems[col][row + i]);
       } else {
@@ -274,130 +360,41 @@
 
 
   Board.prototype.affectAbove = function(gem) {
-    var count = 0;
     var gems = this.getAllGems();
 
     for (var row = gem.row - 1; row >= 0; row--){
-      if(gems[row][gem.col] !== null){
-        // var yNew = gems[row][gem.col].y + this.gemHeight;
-        // var tweenDown = new TWEEN.Tween(gems[row][gem.col]).to({y: yNew}, 500).easing(TWEEN.Easing.Linear.None).start();
-        
-        gems[row][gem.col].y += this.gemHeight;
-        gems[row][gem.col].row += 1;
-        // console.log(gems[row][gem.col].y)
-      } 
+      if(this.gems[row][gem.col] !== undefined){
+        var yNew = Math.floor(this.gems[row][gem.col].y + this.gemHeight);
+        var tweenDown = new TWEEN.Tween(this.gems[row][gem.col]).to({y: yNew}, 1500).easing(TWEEN.Easing.Linear.None).start();
+
+        this.gems[row][gem.col].y = yNew;
+        this.gems[row][gem.col].row += 1;
+        this.gems[row + 1][gem.col] = this.gems[row][gem.col];
+        this.gems[row][gem.col] = undefined;
+
+      }
     }
+
+    console.log(this.getAllGems())
+
   }
+
+
+
+
 
   Board.prototype.refill = function(){
-    console.log('refill start')
-    var gems = this.getAllGems();
-    // var tw = this.gemWidth;
-    // var th = this.gemHeight;
-    // var w = tw - this.offsetX;
-    // var h = th - this.offsetY;
 
-    for (var i = 0; i < this.BOARD_ROWS; i++){
-      for (var j = 0; j < this.BOARD_COLS; j++){
-        if(this.gems[i][j] === null){          
-        //   var row = j * tw;
-        //   var col = i * th;
-        // //   // var id = i * this.BOARD_ROWS + j;
-        // //   // // // var color = this.gemsColor[ Math.floor( Math.random() * this.gemsColor.length )];\
-        //   var color = 'rgba(0,0,0,.8)';
-        //   var gem = new Gem(row + this.offsetX, col + this.offsetY, w, h, 0, color);
-        //   this.addGem(gem, i, j)
-
-        console.log(i, j);
-        }
-      }
-    }
-
-    // this.draw();
   }
 
-  Board.prototype.spawn = function(){
-    var tw = this.gemWidth;
-    var th = this.gemHeight;
-    var w = tw - this.offsetX;
-    var h = th - this.offsetY;
-
-    for (var i = 0; i < this.BOARD_ROWS; i++){
-      this.gems[i] = [];
-
-      for (var j = 0; j < this.BOARD_COLS; j++){
-        var row = j * tw;
-        var col = i * th;
-        var id = i * this.BOARD_ROWS + j;
-        var color = this.gemsColor[ Math.floor( Math.random() * this.gemsColor.length )];
-
-        this.addGem(new Gem(row + this.offsetX, col + this.offsetY, w, h, id, color), i, j)
-      }
-    }
-  }
-
-
-  Board.prototype.addGem = function(gem, i, j) {
-    gem.row = i;
-    gem.col = j;
-    this.gems[i][j] = gem;
-    this.valid = false;
-  }
-
-
-  Board.prototype.clear = function() {
-    this.ctx.clearRect(0, 0, this.width, this.height);
-  }
-
-
-  // While draw is called as often as the INTERVAL variable demands,
-  // It only ever does something if the canvas gets invalidated by our code
-  Board.prototype.draw = function() {
-
-    // if our state is invalid, redraw and validate!
-    // if (!this.valid) {
-
-      var ctx = this.ctx;
-      var gems = this.gems;
-      this.clear();
-      
-      // ** Add stuff you want drawn in the background all the time here **
-      
-      // draw all gems
-      for (var i = 0; i < this.BOARD_ROWS; i++){
-        for (var j = 0; j < this.BOARD_COLS; j++){
-          if (gems[i][j] == null) continue;
-          gems[i][j].draw(ctx);
-        }
-      }
-      
-      // draw selection
-      // right now this is just a stroke along the edge of the selected Gem
-      var length = this.selection.length;
-      // if (length > 2){ length = 2}
-      if (length > 0) {
-        for (var i = 0; i < length; i++){
-          var mySel = this.selection[i];
-
-          ctx.lineWidth = this.selectionWidth;
-          ctx.strokeStyle = this.selectionColor;
-          ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
-        }
-      }
-      
-      // ** Add stuff you want drawn on top all the time here **
-      // this.valid = true;
-    // }
-  }
-
-
+ 
   // Creates an object with x and y defined, set to the mouse position relative to the state's canvas
   // If you wanna be super-correct this can be tricky, we have to worry about padding and borders
   Board.prototype.getMouse = function(e) {
     var element = this.canvas, offsetX = 0, offsetY = 0, mx, my;
     
     // Compute the total offset
-    if (element.offsetParent !== null) {
+    if (element.offsetParent !== undefined) {
       do {
         offsetX += element.offsetLeft;
         offsetY += element.offsetTop;
