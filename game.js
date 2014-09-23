@@ -29,13 +29,16 @@
 
 
   function Board(canvas){
-    this.BOARD_COLS = 8;
-    this.BOARD_ROWS = 8;
+    this.BOARD_COLS = 5;
+    this.BOARD_ROWS = 5;
 
     this.gems = [];
 
     this.offsetX = this.offsetY = 5;
     this.gemWidth = this.gemHeight = 90;
+
+    this.deletedGem = [];
+
     
     this.gemsColor = [
       'rgba(241, 196, 15, .6)', /* yeloow */
@@ -79,10 +82,11 @@
     canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
     canvas.addEventListener('click', function(e) { 
       self.selectGem(e);
-      // self.findAndRemoveMatches();
+    // self.refill();
+    console.log(self.gems)
 
-      if (self.selection.length > 1) self.swapGems(self.selection[0], self.selection[1])
-      // if (!requestId) game.startAnimation();
+      // if (self.selection.length > 1) self.swapGems(self.selection[0], self.selection[1])
+
     }, true );
 
 
@@ -101,7 +105,7 @@
 
     for (var i = 0; i < this.BOARD_ROWS; i++){
       for (var j = 0; j < this.BOARD_COLS; j++){
-        if (gems[i][j].contains(mx, my)) {
+        if (gems[i][j] !== null && gems[i][j].contains(mx, my)) {
           var mySel = gems[i][j];
           // Keep track of where in the object we clicked
           // so we can move it smoothly (see mousemove)
@@ -111,12 +115,11 @@
           st = this.selection;
 
           if (st.length == 2){
-
             if (st[0].id == st[1].id){
               console.log('same');
-              this.countSameColorGems(st[0], 1, 0);
-
+              console.log(st[0].row, st[0].col, st[0].y)
               this.selection = [];
+
             } else if (Math.abs(st[0].col - st[1].col) == 1 && st[0].row == st[1].row || 
                        Math.abs(st[0].row - st[1].row) == 1 && st[0].col == st[1].col){
               
@@ -129,14 +132,14 @@
             st.shift();
           } 
 
-          if (st.length > 2){ st.length = 2; };
+          if (st.length > 2){ 
+            st.length = 2; 
+          };
 
           return;
         }
       }
     }
-
-
 
     // havent returned means we have failed to select anything.
     // If there was an object selected, we deselect it
@@ -146,22 +149,18 @@
     }
   }
 
-Board.prototype.getAllGems = function(){
-  return this.gems;
-}
-
+  Board.prototype.getAllGems = function(){
+    return this.gems;
+  }
 
   Board.prototype.swapGems = function(t1, t2){
-    var tweenGemOneX = new TWEEN.Tween(t1).to({x: t2.x}, 500).easing(TWEEN.Easing.Quartic.Out).start();
-    var tweenGemOneY = new TWEEN.Tween(t1).to({y: t2.y}, 500).easing(TWEEN.Easing.Quartic.Out).start();
+    var duration = 400;
 
-    var tweenGemTwoX = new TWEEN.Tween(t2).to({x: t1.x}, 500).easing(TWEEN.Easing.Quartic.Out).start();
-    var tweenGemTwoY = new TWEEN.Tween(t2).to({y: t1.y}, 500).easing(TWEEN.Easing.Quartic.Out).start();
+    var tweenGemOneX = new TWEEN.Tween(t1).to({x: t2.x}, duration).easing(TWEEN.Easing.Linear.None).start();
+    var tweenGemOneY = new TWEEN.Tween(t1).to({y: t2.y}, duration).easing(TWEEN.Easing.Linear.None).start();
 
-    // tweenGemOneX.onComplete(function(){
-      // game.stopAnimation();
-    // })
-
+    var tweenGemTwoX = new TWEEN.Tween(t2).to({x: t1.x}, duration).easing(TWEEN.Easing.Linear.None).start();
+    var tweenGemTwoY = new TWEEN.Tween(t2).to({y: t1.y}, duration).easing(TWEEN.Easing.Linear.None).start();
 
     var gems = this.getAllGems();
     var props = ['x', 'y', 'row', 'col'];
@@ -175,7 +174,12 @@ Board.prototype.getAllGems = function(){
     gems[t1.row][t1.col] = t1;
     gems[t2.row][t2.col] = t2;
 
-    this.findAndRemoveMatches();
+    var self = this;
+    tweenGemTwoX.onComplete(function(){
+      self.findAndRemoveMatches();
+
+    })
+    // this.refill();
 
 
     // tweenGemOneX.repeat(1);
@@ -184,31 +188,29 @@ Board.prototype.getAllGems = function(){
   }
 
 
-
-  Board.prototype.moveGem = function(){
-
-  }
-
-  Board.prototype.countSameColorGems = function() {
-
-  },
-
-
   Board.prototype.findAndRemoveMatches = function() {
     var matches = this.lookForMatches();
     var gems = this.getAllGems();
-    console.log(matches);
+    var self = this;
+
     for(var i = 0; i < matches.length; i++){
       var numPoints = (matches[i].length - 1);
+      var deletedCount = 0;
       for(var j = 0; j < matches[i].length; j++){
-        // console.log(matches[i][j].col);
-        gems[matches[i][j].row][matches[i][j].col] = undefined;
-        this.affectAbove(matches[i][j]);
+        var m = matches[i][j];
+        var newX = -100;
+        if (gems[m.row][m.col] !== null){
+          // var tweenOut = new TWEEN.Tween(gems[m.row][m.col]).to({x: newX}, 500).easing(TWEEN.Easing.Linear.None).start();
+          gems[m.row][m.col] = null;
+          // this.affectAbove(m);
+        }
+      
       }
     }
 
-
+    this.refill();
   }
+
 
   Board.prototype.lookForMatches = function() {
     var matchList = [];
@@ -236,12 +238,14 @@ Board.prototype.getAllGems = function(){
     return matchList;
   }
 
+
   Board.prototype.getMatchHoriz = function(col, row){
     var match = [];
     var gems = this.getAllGems();
 
     for(var i = 0; col + i < this.BOARD_COLS; i++){
-      if(gems[col][row].fill == gems[col + i][row].fill){
+      if(gems[col][row] !== null && gems[col + i][row] !== null &&
+         gems[col][row].fill == gems[col + i][row].fill){
         match.push(gems[col + i][row]);
       } else {
         return match;
@@ -251,12 +255,14 @@ Board.prototype.getAllGems = function(){
     return match;
   }
 
+
   Board.prototype.getMatchVert = function(col, row){
     var match = [];
     var gems = this.getAllGems();
 
     for(var i = 0; row + i < this.BOARD_ROWS; i++){
-      if(gems[col][row].fill == gems[col][row + i].fill){
+      if(gems[col][row] !== null && gems[col][row + i] !== null && 
+         gems[col][row].fill == gems[col][row + i].fill){
         match.push(gems[col][row + i]);
       } else {
         return match;
@@ -267,20 +273,48 @@ Board.prototype.getAllGems = function(){
   }
 
 
-Board.prototype.affectAbove = function(gem) {
-  var gems = this.getAllGems();
-  for (var row = gem.row - 1; row >= 0; row--){
-    if (gems[row][gem.col] != undefined){
-      // console.log(row, gem.col, gems[row][gem.col])
-      gems[row][gem.col].y += this.gemHeight;
-      // gems[row][gem.col].row += 1;
-      // gems[row + 1][gem.col] = gems[row][gem.col];
-      // gems[row][gem.col] = undefined;
+  Board.prototype.affectAbove = function(gem) {
+    var count = 0;
+    var gems = this.getAllGems();
+
+    for (var row = gem.row - 1; row >= 0; row--){
+      if(gems[row][gem.col] !== null){
+        // var yNew = gems[row][gem.col].y + this.gemHeight;
+        // var tweenDown = new TWEEN.Tween(gems[row][gem.col]).to({y: yNew}, 500).easing(TWEEN.Easing.Linear.None).start();
+        
+        gems[row][gem.col].y += this.gemHeight;
+        gems[row][gem.col].row += 1;
+        // console.log(gems[row][gem.col].y)
+      } 
     }
   }
 
-  // this.draw();
-}
+  Board.prototype.refill = function(){
+    console.log('refill start')
+    var gems = this.getAllGems();
+    // var tw = this.gemWidth;
+    // var th = this.gemHeight;
+    // var w = tw - this.offsetX;
+    // var h = th - this.offsetY;
+
+    for (var i = 0; i < this.BOARD_ROWS; i++){
+      for (var j = 0; j < this.BOARD_COLS; j++){
+        if(this.gems[i][j] === null){          
+        //   var row = j * tw;
+        //   var col = i * th;
+        // //   // var id = i * this.BOARD_ROWS + j;
+        // //   // // // var color = this.gemsColor[ Math.floor( Math.random() * this.gemsColor.length )];\
+        //   var color = 'rgba(0,0,0,.8)';
+        //   var gem = new Gem(row + this.offsetX, col + this.offsetY, w, h, 0, color);
+        //   this.addGem(gem, i, j)
+
+        console.log(i, j);
+        }
+      }
+    }
+
+    // this.draw();
+  }
 
   Board.prototype.spawn = function(){
     var tw = this.gemWidth;
@@ -300,26 +334,18 @@ Board.prototype.affectAbove = function(gem) {
         this.addGem(new Gem(row + this.offsetX, col + this.offsetY, w, h, id, color), i, j)
       }
     }
-
-    this.render();
   }
 
 
-  Board.prototype.render = function(){
-    this.draw();
-  }
-
-
-  Board.prototype.addGem = function(shape, i, j) {
-    shape.row = i;
-    shape.col = j;
-    this.gems[i][j] = shape;
+  Board.prototype.addGem = function(gem, i, j) {
+    gem.row = i;
+    gem.col = j;
+    this.gems[i][j] = gem;
     this.valid = false;
   }
 
 
   Board.prototype.clear = function() {
-
     this.ctx.clearRect(0, 0, this.width, this.height);
   }
 
@@ -340,7 +366,7 @@ Board.prototype.affectAbove = function(gem) {
       // draw all gems
       for (var i = 0; i < this.BOARD_ROWS; i++){
         for (var j = 0; j < this.BOARD_COLS; j++){
-          if (gems[i][j] == undefined) continue;
+          if (gems[i][j] == null) continue;
           gems[i][j].draw(ctx);
         }
       }
@@ -371,7 +397,7 @@ Board.prototype.affectAbove = function(gem) {
     var element = this.canvas, offsetX = 0, offsetY = 0, mx, my;
     
     // Compute the total offset
-    if (element.offsetParent !== undefined) {
+    if (element.offsetParent !== null) {
       do {
         offsetX += element.offsetLeft;
         offsetY += element.offsetTop;
@@ -391,78 +417,37 @@ Board.prototype.affectAbove = function(gem) {
   }
 
 
-  // function init() {
-  //   var board = new Board(document.getElementById('board'));
-  //   board.spawn();
+  function Game(canvas) {
+    this.board = new Board(canvas);
+  }
 
-  //   board.update();
-  // }
+  Game.prototype.start = function() {
+    this.board.spawn();
+    console.log('start');
 
-
-// Board.prototype.update = function() {
-//   requestAnimationFrame(this.update.bind(this));
-//   TWEEN.update();
-//   this.draw();
-// }
+    // requestId = requestAnimationFrame(this.update.bind(this));
+    this.startAnimation();
+  }
 
 
-// var game = {
-//   board: undefined,
+  Game.prototype.update = function() {
+    requestId = requestAnimationFrame(this.update.bind(this));
 
-//   init: function(){
-//     this.board = new Board(document.getElementById('board'))
-//     this.board.spawn();
+    // console.log('update');
 
-//     console.log('init');
-//     game.start();
-//   },
-
-//   start: function(){
-//     console.log('start');    
-//     requestAnimationFrame(game.update);
-//   },
-
-//   update: function(){
-//     requestAnimationFrame(game.update);
-
-//     TWEEN.update();
-//     game.board.draw();    
-//   },
-
-// }
+    TWEEN.update();
+    this.board.draw();
+  }
 
 
-function Game(canvas) {
-  this.board = new Board(canvas);
-}
+  Game.prototype.startAnimation = function() {
+    // console.log('start animation');
+    requestId = requestAnimationFrame(this.update.bind(this));
+  }
 
-Game.prototype.start = function() {
-  this.board.spawn();
-  console.log('start');
-
-  // requestId = requestAnimationFrame(this.update.bind(this));
-  this.startAnimation();
-}
-
-
-Game.prototype.update = function() {
-  requestId = requestAnimationFrame(this.update.bind(this));
-
-  // console.log('update');
-
-  TWEEN.update();
-  this.board.draw();
-}
-
-
-Game.prototype.startAnimation = function() {
-  // console.log('start animation');
-  requestId = requestAnimationFrame(this.update.bind(this));
-}
-
-Game.prototype.stopAnimation = function() {
-  // console.log('stop animation')
-  if(requestId)
-    cancelAnimationFrame(requestId);
-  requestId = 0;
-}
+  Game.prototype.stopAnimation = function() {
+    // console.log('stop animation')
+    if(requestId)
+      cancelAnimationFrame(requestId);
+    requestId = 0;
+  }
