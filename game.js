@@ -1,12 +1,21 @@
   var requestId = 0;
 
   // Constructor for Gem objects to hold data for all drawn objects.
+<<<<<<< HEAD
   // For now they will just be defined as rectangles.
   function Gem(x, y, w, h, fill) {
     this.x = x || 0;
     this.y = y || 0;
     this.w = w || 1;
     this.h = h || 1;
+=======
+	// For now they will just be defined as rectangles.
+	function Gem(x, y, w, h, fill) {
+	  this.x = x || 0;
+	  this.y = y || 0;
+	  this.w = w || 1;
+	  this.h = h || 1;
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
     // this.id = id || 0;
     this.row = 0;
     this.col = 0;
@@ -48,8 +57,8 @@
   }
 
   function Board(canvas){
-    this.BOARD_COLS = 8;
-    this.BOARD_ROWS = 8;
+    this.BOARD_COLS = 5;
+    this.BOARD_ROWS = 5;
 
     this.gems = [];
 
@@ -76,10 +85,25 @@
     
     // This complicates things a little but but fixes mouse co-ordinate problems
     // when there's a border or padding. See getMouse for more detail
+<<<<<<< HEAD
     var stylePaddingLeft, tsylePaddingTop, styleBorderLeft, styleBorderTop;
     
     this.fixCanvasMouseCoord();
 
+=======
+    var stylePaddingLeft, stylePaddingTop, styleBorderLeft, styleBorderTop;
+    if (document.defaultView && document.defaultView.getComputedStyle) {
+      this.stylePaddingLeft = parseInt(document.defaultView.getComputedStyle(canvas, undefined)['paddingLeft'], 10)     || 0;
+      this.stylePaddingTop  = parseInt(document.defaultView.getComputedStyle(canvas, undefined)['paddingTop'], 10)      || 0;
+      this.styleBorderLeft  = parseInt(document.defaultView.getComputedStyle(canvas, undefined)['borderLeftWidth'], 10) || 0;
+      this.styleBorderTop   = parseInt(document.defaultView.getComputedStyle(canvas, undefined)['borderTopWidth'], 10)  || 0;
+    }
+    // Some pages have fixed-position bars (like the stumbleupon bar) at the top or left of the page
+    // They will mess up mouse coordinates and this fixes that
+    var html = document.body.parentNode;
+    this.htmlTop = html.offsetTop;
+    this.htmlLeft = html.offsetLeft;
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
 
     // **** Keep track of state! ****
     
@@ -93,12 +117,27 @@
     
     //fixes a problem where double clicking causes text to get selected on the canvas
     canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
+<<<<<<< HEAD
     canvas.addEventListener('click', function(e) { self.selectGem(e); }, true );
+=======
+    canvas.addEventListener('click', function(e) { 
+      self.selectGem(e);
+    // self.refill();
+      self.draw();
+
+    // console.log(self.gems)
+
+      // if (self.selection.length > 1) self.swapGems(self.selection[0], self.selection[1])
+
+    }, true );
+
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
 
     this.selectionColor = 'rgba(0,0,0,.8)';
     this.selectionWidth = 3;
   }
 
+<<<<<<< HEAD
   Board.prototype.fixCanvasMouseCoord = function(){
     var canvas =  this.canvas;
     if (document.defaultView && document.defaultView.getComputedStyle) {
@@ -115,6 +154,8 @@
     this.htmlLeft = html.offsetLeft;
   }
 
+=======
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
   // While draw is called as often as the INTERVAL variable demands,
   // It only ever does something if the canvas gets invalidated by our code
   Board.prototype.draw = function() {
@@ -186,10 +227,19 @@
     gem.col = j;
     this.gems[i][j] = gem;
     this.valid = false;
+<<<<<<< HEAD
 
     return this.gems[i][j];
   }
 
+=======
+  }
+
+
+
+
+
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
 
   Board.prototype.selectGem = function(e) {
     var mouse = this.getMouse(e);
@@ -212,7 +262,11 @@
 
           if (st.length == 2){
             if (st[0].row == st[1].row && st[0].col == st[1].col){
+<<<<<<< HEAD
               // console.log('same');
+=======
+              console.log('same');
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
               console.log(st[0].row, st[0].col, st[0].y)
               this.selection = [];
 
@@ -253,6 +307,7 @@
   Board.prototype.getAllGems = function(){
     return this.gems;
   }
+<<<<<<< HEAD
 
 
   Board.prototype.swapGems = function(t1, t2, backFlag){
@@ -289,6 +344,17 @@
       tweenGemOne.repeat(1);
       tweenGemTwo.repeat(1);
     }
+=======
+
+  Board.prototype.swapGems = function(t1, t2){
+    var duration = 400;
+
+    var tweenGemOneX = new TWEEN.Tween(t1).to({x: t2.x}, duration).easing(TWEEN.Easing.Linear.None).start();
+    var tweenGemOneY = new TWEEN.Tween(t1).to({y: t2.y}, duration).easing(TWEEN.Easing.Linear.None).start();
+
+    var tweenGemTwoX = new TWEEN.Tween(t2).to({x: t1.x}, duration).easing(TWEEN.Easing.Linear.None).start();
+    var tweenGemTwoY = new TWEEN.Tween(t2).to({y: t1.y}, duration).easing(TWEEN.Easing.Linear.None).start();
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
 
     var gems = this.getAllGems();
     var props = ['x', 'y', 'row', 'col'];
@@ -302,15 +368,32 @@
     gems[t1.row][t1.col] = t1;
     gems[t2.row][t2.col] = t2;
 
+<<<<<<< HEAD
+=======
+    var self = this;
+    tweenGemTwoX.onComplete(function(){
+      self.findAndRemoveMatches();
+
+    })
+    // this.refill();
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
 
     tweenGemTwo.onComplete(function(){
 
+<<<<<<< HEAD
     })
+=======
+    // tweenGemOneX.repeat(1);
+    // tweenGemTwoX.repeat(1);
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
 
   }
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
   Board.prototype.findAndRemoveMatches = function() {
     var matches = this.lookForMatches();
 
@@ -322,6 +405,7 @@
     // console.log(matches.length)
     // console.log(matches)
     var gems = this.getAllGems();
+<<<<<<< HEAD
     var tweenOut;
 
     for (var i = 0; i < matches.length; i++){
@@ -357,6 +441,28 @@
 
           // tweenOut.onComplete(this.affectAbove.bind(this, m));
 
+=======
+
+    for(var i = 0; i < matches.length; i++){
+      var numPoints = (matches[i].length - 1);
+      var deletedCount = 0;
+      for(var j = 0; j < matches[i].length; j++){
+        var m = matches[i][j];
+        var newX = -100;
+
+        if (gems[m.row][m.col]){
+          var tweenOut = new TWEEN.Tween(gems[m.row][m.col]).to({x: -100}, 500).easing(TWEEN.Easing.Linear.None).start();
+          
+          var self = this;
+
+          // tweenOut.onComplete(function(){
+            // console.log(m.row, m.col)
+            gems[m.row][m.col] = undefined;
+          // })
+            this.affectAbove(m);
+        }
+      
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
       }
       }
     }
@@ -365,12 +471,15 @@
       tweenOut.onComplete(this.refill.bind(this));
     }
 
+<<<<<<< HEAD
     return true;
   }
 
   Board.prototype.deleteAndRefill = function(gem) {
     
     this.affectAbove(gem);
+=======
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
     this.refill();
   }
 
@@ -407,8 +516,12 @@
     var gems = this.getAllGems();
 
     for(var i = 0; col + i < this.BOARD_COLS; i++){
+<<<<<<< HEAD
       if(gems[col][row] !== undefined && 
          gems[col+i][row] !== undefined &&
+=======
+      if(gems[col][row] !== undefined && gems[col + i][row] !== undefined &&
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
          gems[col][row].fill == gems[col + i][row].fill){
         match.push(gems[col + i][row]);
       } else {
@@ -425,8 +538,12 @@
     var gems = this.getAllGems();
 
     for(var i = 0; row + i < this.BOARD_ROWS; i++){
+<<<<<<< HEAD
       if(gems[col][row] !== undefined && 
          gems[col][row+i] !== undefined && 
+=======
+      if(gems[col][row] !== undefined && gems[col][row + i] !== undefined && 
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
          gems[col][row].fill == gems[col][row + i].fill){
         match.push(gems[col][row + i]);
       } else {
@@ -439,6 +556,7 @@
 
 
   Board.prototype.affectAbove = function(gem) {
+<<<<<<< HEAD
     for (var row = gem.row - 1; row >= 0; row--){
       if(this.gems[row][gem.col] !== undefined){
         var yNew = Math.floor(this.gems[row][gem.col].y + this.gemHeight);
@@ -508,6 +626,24 @@
     }
 
     if (tweenDown) tweenDown.onComplete(this.findAndRemoveMatches.bind(this));
+=======
+    var gems = this.getAllGems();
+
+    for (var row = gem.row - 1; row >= 0; row--){
+      if(this.gems[row][gem.col] !== undefined){
+        var yNew = Math.floor(this.gems[row][gem.col].y + this.gemHeight);
+        var tweenDown = new TWEEN.Tween(this.gems[row][gem.col]).to({y: yNew}, 1500).easing(TWEEN.Easing.Linear.None).start();
+
+        this.gems[row][gem.col].y = yNew;
+        this.gems[row][gem.col].row += 1;
+        this.gems[row + 1][gem.col] = this.gems[row][gem.col];
+        this.gems[row][gem.col] = undefined;
+
+      }
+    }
+
+    console.log(this.getAllGems())
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
 
   }
 
@@ -516,6 +652,7 @@
     for(var col = 0; row < this.row; BOARD_ROWS++){
       for(var row = 0; col < this.col; BOARD_COLS++){
 
+<<<<<<< HEAD
         // воможна горизонтальная, две подряд 
         if (this.matchPattern(col, row, [[1,0]], [[-2,0],[-1,-1],[-1,1],[2,-1],[2,1],[3,0]])) {
           return true;
@@ -540,10 +677,13 @@
 
     return false;
   }
+=======
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
 
   Board.prototype.matchPattern = function(col, row, mustHave, needOne) {
     var thisType = this.gems[col][row].fill;
 
+<<<<<<< HEAD
     for (var i = 0; i < mustHave.length; i++){
       if (!matchType(col + mustHave[i][0], row + mustHave[i][1], thisType)) {
         return false;
@@ -566,6 +706,13 @@ Board.prototype.matchType = function(col,row,type) {
 
 */
   // Board.prototype.moveGem
+=======
+
+  Board.prototype.refill = function(){
+
+  }
+
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
  
   // Creates an object with x and y defined, set to the mouse position relative to the state's canvas
   // If you wanna be super-correct this can be tricky, we have to worry about padding and borders
@@ -596,6 +743,7 @@ Board.prototype.matchType = function(col,row,type) {
   function Game(canvas) {
     this.board = new Board(canvas);
   }
+<<<<<<< HEAD
 
   Game.prototype.start = function() {
     this.board.spawn();
@@ -605,7 +753,28 @@ Board.prototype.matchType = function(col,row,type) {
     this.startAnimation();
   }
 
+=======
 
+  Game.prototype.start = function() {
+    this.board.spawn();
+    console.log('start');
+
+    // requestId = requestAnimationFrame(this.update.bind(this));
+    this.startAnimation();
+  }
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
+
+  Game.prototype.update = function() {
+    requestId = requestAnimationFrame(this.update.bind(this));
+
+<<<<<<< HEAD
+    // console.log('update');
+
+    TWEEN.update();
+    this.board.draw();
+    // this.board.findAndRemoveMatches();
+
+=======
   Game.prototype.update = function() {
     requestId = requestAnimationFrame(this.update.bind(this));
 
@@ -613,8 +782,7 @@ Board.prototype.matchType = function(col,row,type) {
 
     TWEEN.update();
     this.board.draw();
-    // this.board.findAndRemoveMatches();
-
+>>>>>>> 25aa90f2ba95182d7103ca31da7f10bebd9b1146
   }
 
 
