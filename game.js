@@ -510,26 +510,28 @@
   Board.prototype.lookForPossibles = function(){
     console.log('lookForPossibles');
 
-    for(var row = 0; row < this.row; BOARD_ROWS++){
-      for(var col = 0; col < this.col; BOARD_COLS++){
+    for(var row = 0; row < this.BOARD_COLS; row++){
+      for(var col = 0; col < this.BOARD_ROWS; col++){
+          // console.log('match')
 
         // воможна горизонтальная, две подряд 
-        if (this.matchPattern(col, row, [[1,0]], [[-2,0],[-1,-1],[-1,1],[2,-1],[2,1],[3,0]])) {
+        if (this.matchPattern(row, col, [[1,0]], [[-2,0],[-1,-1],[-1,1],[2,-1],[2,1],[3,0]])) {
+          console.log('match1')
           return true;
         }
         
         // воможна горизонтальная, две по разным сторонам    
-        if (this.matchPattern(col, row, [[2,0]], [[1,-1], [1,1]])) {
+        if (this.matchPattern(row, col, [[2,0]], [[1,-1], [1,1]])) {
           return true;
         }
 
         // возможна вертикальная, две подряд 
-        if (this.matchPattern(col, row, [[0,1]], [[0,-2],[-1,-1],[1,-1],[-1,2],[1,2]])) {
+        if (this.matchPattern(row, col, [[0,1]], [[0,-2],[-1,-1],[1,-1],[-1,2],[1,2]])) {
           return true;
         }
         
         // воможна вертикальная, две по разным сторонам  
-        if (this.matchPattern(col, row, [[0,2]], [[-1,1],[1,1]])) {
+        if (this.matchPattern(row, col, [[0,2]], [[-1,1],[1,1]])) {
           return true;
         }
       }
@@ -540,28 +542,34 @@
 
   Board.prototype.matchPattern = function(col, row, mustHave, needOne) {
 
-    console.log('matchPattern')
+    // console.log('matchPattern')
+
+    // console.log(col, row)
     
     var thisType = this.gems[col][row].fill;
 
     for (var i = 0; i < mustHave.length; i++){
-      if (!matchType(col + mustHave[i][0], row + mustHave[i][1], thisType)) {
+      if (!this.matchType(col + mustHave[i][0], row + mustHave[i][1], thisType)) {
         return false;
       }
     }
 
     for (var i = 0; i < needOne.length; i++){
-      if (matchType(col + needOne[i][0], row + needOne[i][1], thisType)) {
+      if (this.matchType(col + needOne[i][0], row + needOne[i][1], thisType)) {
         return true;
       }
     }
 
     return false;
   }
-Board.prototype.matchType = function(col,row,type) {    
-   // убедимся, что фишка не выходит за пределы поля    
-   if ((col < 0) || (col > this.BOARD_COLS) || (row < 0) || (row > this.BOARD_ROWS)) return false;    
-      return (this.gems[col][row].fill == type);   
+Board.prototype.matchType = function(row,col,type) {    
+  // console.log('matchType')
+  // убедимся, что фишка не выходит за пределы поля    
+  if ((col < 0) || (col >= this.BOARD_COLS) || (row < 0) || (row >= this.BOARD_ROWS)) return false;
+  
+    // console.log('r:', row, 'c:', col) 
+    return (this.gems[row][col].fill == type);   
+     // return true;
 }  
 
 
