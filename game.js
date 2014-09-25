@@ -47,8 +47,8 @@
 
 
   function Board(canvas){
-    this.BOARD_COLS = 8;
-    this.BOARD_ROWS = 8;
+    this.BOARD_COLS = 4;
+    this.BOARD_ROWS = 4;
 
     this.gems = [];
 
@@ -74,9 +74,9 @@
     this.animFill = undefined;
 
     this.animDuration = {
-      down: 600,
-      fill: 600,
-      out:  500,
+      down: 400,
+      fill: 500,
+      out:  0,
       swap: 300,
     };
     
@@ -175,21 +175,15 @@
 
 
   Board.prototype.spawn = function(){
-    var tw = this.gemWidth;
-    var th = this.gemHeight;
-    var w = tw - this.offsetX;
-    var h = th - this.offsetY;
+    var w = this.gemWidth - this.offsetX;
+    var h = this.gemHeight - this.offsetY;
 
     for (var i = 0; i < this.BOARD_ROWS; i++){
       this.gems[i] = [];
-
       for (var j = 0; j < this.BOARD_COLS; j++){
-        var row = j * tw;
-        var col = i * th;
-        var id = i * this.BOARD_ROWS + j;
         var color = this.gemsColor[ Math.floor( Math.random() * this.gemsColor.length )];
-
-        this.addGem(new Gem(row + this.offsetX, col + this.offsetY, w, h, color), i, j)
+        var g = new Gem(this.gemPosX[j], this.gemPosY[i], w, h, color);
+        this.addGem(g, i, j)
       }
     }
 
@@ -329,9 +323,10 @@
       var deletedCount = 0;
       for (var j = 0; j < matches[i].length; j++){
         var m = matches[i][j];
+        var g = gems[m.row][m.col];
 
         if (gems[m.row][m.col]){
-          var xNew = this.gemHeight * this.BOARD_ROWS + 200;
+          var yNew = this.gemHeight * this.BOARD_ROWS + 200;
 
           // tweenOut = gems[m.row][m.col].addTween({
           //   position: {x: -200},
@@ -341,13 +336,22 @@
           //   // run: true
           // })
 
-          tweenOut = new TWEEN.Tween(gems[m.row][m.col])
-            .to({x: -200}, this.animDuration.out)
+          var self = this;
+
+          // (function(){
+            tweenOut = new TWEEN.Tween(g)
+            .to({y: yNew}, self.animDuration.out)
             .easing(TWEEN.Easing.Linear.None)
             .start();
+          // })();
 
-            gems[m.row][m.col] = undefined;
-            this.affectAbove(m);
+
+              gems[m.row][m.col] = undefined;
+              this.affectAbove(m);
+            // })
+          // })(m, gems[m.row][m.col]);
+
+            // tweenOut.onComplete(function(){ g = undefined; self.affectAbove(m); })
         }
       }
     }
@@ -355,12 +359,12 @@
     if (tweenOut){
       tweenOut.onComplete(this.refill.bind(this));
     }
-  }
 
-  Board.prototype.deleteAndRefill = function(gem) {
-    
-    this.affectAbove(gem);
-    this.refill();
+    if(matches.length == 0){
+      // if (!this.lookForPossibles()){
+        console.log(this.lookForPossibles())
+      // }
+    }
   }
 
 
@@ -437,30 +441,15 @@
         // var yNew = Math.floor(this.gems[row][gem.col].y + this.gemHeight);
         var yNew = this.gemPosY[row] + this.gemHeight;
 
-        // console.log(this.gems[row][gem.col].y, this.gemPosY[row])
-        
-        // var tweenDown = this.gems[row][gem.col].addTween({
-        //   position: {y: yNew},
-        //   duration: this.animDuration.down,
-        //   ease: TWEEN.Easing.Bounce.Out,
-        //   // run: true
-        // });
-
-            tweenDown = new TWEEN.Tween(this.gems[row][gem.col])
-              .to({y: yNew}, this.animDuration.down)
-              .easing(TWEEN.Easing.Bounce.Out)
-              .start();
-
-
-        tweenDown.onComplete(function(){
-          console.log('tweenDown');
-        })
+        tweenDown = new TWEEN.Tween(this.gems[row][gem.col])
+          .to({y: yNew}, this.animDuration.down)
+          .easing(TWEEN.Easing.Bounce.Out)
+          .start();
 
         this.gems[row][gem.col].y = yNew;
         this.gems[row][gem.col].row += 1;
         this.gems[row + 1][gem.col] = this.gems[row][gem.col];
         this.gems[row][gem.col] = undefined;
-
       } 
     }
 
@@ -493,20 +482,15 @@
             var r = col * tw;
             var c = row * th;
             var color = this.gemsColor[ Math.floor( Math.random() * this.gemsColor.length )];
+            
             var gem = new Gem(r + this.offsetX, -h, w, h, color);
             this.addGem(gem, row, col);
 
+
             tweenFill = new TWEEN.Tween(gem)
-              .to({y: yNew}, this.animDuration.fill)
+              .to({y: yNew}, 550 + 50*row/*this.animDuration.fill*/)
               .easing(TWEEN.Easing.Bounce.Out)
               .start();
-
-            // tweenFill = gem.addTween({
-            //   position: {y: yNew},
-            //   duration: this.animDuration.fill,
-            //   ease: TWEEN.Easing.Bounce.Out,
-            //   // run: true
-            // })
 
             tweenFill.onComplete(function(){
               console.log('tweenFill')
@@ -522,10 +506,12 @@
 
   }
 
-/*
+
   Board.prototype.lookForPossibles = function(){
-    for(var col = 0; row < this.row; BOARD_ROWS++){
-      for(var row = 0; col < this.col; BOARD_COLS++){
+    console.log('lookForPossibles');
+
+    for(var row = 0; row < this.row; BOARD_ROWS++){
+      for(var col = 0; col < this.col; BOARD_COLS++){
 
         // воможна горизонтальная, две подряд 
         if (this.matchPattern(col, row, [[1,0]], [[-2,0],[-1,-1],[-1,1],[2,-1],[2,1],[3,0]])) {
@@ -553,6 +539,9 @@
   }
 
   Board.prototype.matchPattern = function(col, row, mustHave, needOne) {
+
+    console.log('matchPattern')
+    
     var thisType = this.gems[col][row].fill;
 
     for (var i = 0; i < mustHave.length; i++){
@@ -571,11 +560,11 @@
   }
 Board.prototype.matchType = function(col,row,type) {    
    // убедимся, что фишка не выходит за пределы поля    
-   if ((col < 0) || (col > 7) || (row < 0) || (row > 7)) return false;    
+   if ((col < 0) || (col > this.BOARD_COLS) || (row < 0) || (row > this.BOARD_ROWS)) return false;    
       return (this.gems[col][row].fill == type);   
 }  
 
-*/
+
   // Board.prototype.moveGem
  
   // Creates an object with x and y defined, set to the mouse position relative to the state's canvas
@@ -618,19 +607,10 @@ Board.prototype.matchType = function(col,row,type) {
 
 
   Game.prototype.update = function(time) {
-    requestId = requestAnimationFrame(this.update.bind(this, time));
-
-    // console.log('update');
-    if (this.animOut !== undefined && this.animDown !== undefined && this.animFill != undefined){
-      this.animOut.chain(this.animDown);
-      this.animDown.chain(this.animFill)
-      this.animOut.start();
-    }
+    requestAnimationFrame(this.update.bind(this, time));
 
     TWEEN.update();
     this.board.draw();
-    // this.board.findAndRemoveMatches();
-
   }
 
 
