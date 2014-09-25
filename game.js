@@ -7,17 +7,18 @@
     this.y = y || 0;
     this.w = w || 1;
     this.h = h || 1;
-    // this.id = id || 0;
     this.row = 0;
     this.col = 0;
     this.fill = fill || '#AAAAAA';
   }
+
 
   // Draws this shape to a given context
   Gem.prototype.draw = function(ctx) {
     ctx.fillStyle = this.fill;
     ctx.fillRect(this.x, this.y, this.w, this.h);
   }
+
 
   // Determine if a point is inside the shape's bounds
   Gem.prototype.contains = function(mx, my) {
@@ -31,6 +32,7 @@
     // console.log(position)
   }
 
+
   Gem.prototype.addTween = function(options){
     if (typeof(options) != 'object') return;
 
@@ -38,14 +40,11 @@
     var duration = options.duration;
     var ease = options.ease;
     var delay = options.delay || 0;
-    var run = options.run || false;
 
-    var tween = new TWEEN.Tween(this).to(position, duration).delay(delay).easing(ease);
-    if (run == true){
-      tween.start();
-    }
-    return tween;
+    return new TWEEN.Tween(this).to(position, duration).delay(delay).easing(ease).start();
   }
+
+
 
   function Board(canvas){
     this.BOARD_COLS = 8;
@@ -57,8 +56,29 @@
     this.gemWidth = this.gemHeight = 90;
     this.gemSizeSpaced = this.gemWidth + this.offsetX;
 
-    this.deletedGem = [];
+    this.gemPosX = [];
+    this.gemPosY = [];
 
+    // Расчёт координат для каждого элемента на поле
+    for (var i = 0; i < this.BOARD_COLS; i++){
+      this.gemPosX[i] = this.offsetX + this.gemWidth*i;
+    }
+
+    for (var i = 0; i < this.BOARD_ROWS; i++){
+      this.gemPosY[i] = this.offsetY + this.gemHeight*i;
+    }
+
+    // this.anim = [];
+    this.animDown = undefined;
+    this.animOut = undefined;
+    this.animFill = undefined;
+
+    this.animDuration = {
+      down: 600,
+      fill: 600,
+      out:  500,
+      swap: 300,
+    };
     
     this.gemsColor = [
       'rgba(52,  73,  94,  .5)',
@@ -99,6 +119,7 @@
     this.selectionWidth = 3;
   }
 
+
   Board.prototype.fixCanvasMouseCoord = function(){
     var canvas =  this.canvas;
     if (document.defaultView && document.defaultView.getComputedStyle) {
@@ -115,43 +136,36 @@
     this.htmlLeft = html.offsetLeft;
   }
 
+
   // While draw is called as often as the INTERVAL variable demands,
   // It only ever does something if the canvas gets invalidated by our code
   Board.prototype.draw = function() {
-
-    // if our state is invalid, redraw and validate!
-    // if (!this.valid) {
-
-      var ctx = this.ctx;
-      var gems = this.gems;
-      this.clear();
-      
-      // ** Add stuff you want drawn in the background all the time here **
-      
-      // draw all gems
-      for (var i = 0; i < this.BOARD_ROWS; i++){
-        for (var j = 0; j < this.BOARD_COLS; j++){
-          if (gems[i][j] == undefined) continue;
-          gems[i][j].draw(ctx);
-        }
+    var ctx = this.ctx;
+    var gems = this.gems;
+    this.clear();
+    
+    // ** Add stuff you want drawn in the background all the time here **
+    
+    // draw all gems
+    for (var i = 0; i < this.BOARD_ROWS; i++){
+      for (var j = 0; j < this.BOARD_COLS; j++){
+        if (gems[i][j] == undefined) continue;
+        gems[i][j].draw(ctx);
       }
-      
-      // draw selection
-      // right now this is just a stroke along the edge of the selected Gem
-      var length = this.selection.length;
-      if (length > 0) {
-        for (var i = 0; i < length; i++){
-          var mySel = this.selection[i];
+    }
+    
+    // draw selection
+    // right now this is just a stroke along the edge of the selected Gem
+    var length = this.selection.length;
+    if (length > 0) {
+      for (var i = 0; i < length; i++){
+        var mySel = this.selection[i];
 
-          ctx.lineWidth = this.selectionWidth;
-          ctx.strokeStyle = this.selectionColor;
-          ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
-        }
+        ctx.lineWidth = this.selectionWidth;
+        ctx.strokeStyle = this.selectionColor;
+        ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
       }
-      
-      // ** Add stuff you want drawn on top all the time here **
-      // this.valid = true;
-    // }
+    }
   }
 
 
@@ -178,6 +192,8 @@
         this.addGem(new Gem(row + this.offsetX, col + this.offsetY, w, h, color), i, j)
       }
     }
+
+    this.findAndRemoveMatches();
   }
 
 
@@ -246,7 +262,6 @@
     // If there was an object selected, we deselect it
     if (this.selection) {
       this.selection = [];
-      this.valid = false; // Need to clear the old selection border
     }
   }
 
@@ -256,39 +271,26 @@
 
 
   Board.prototype.swapGems = function(t1, t2, backFlag){
-    var duration = 300;
+    var duration = this.animDuration.swap;
     var ease = TWEEN.Easing.Linear.None;
     // var ease = TWEEN.Easing.Quintic.Out
+    var posX = this.gemPosX;
+    var posY = this.gemPosY;
 
     var tweenGemOne = t1.addTween({
-      position: {
-        x: t2.x,
-        y: t2.y
-      },
-
+      position: {x: posX[t2.col], y: posY[t2.row]},
       duration: duration,
       ease: ease,
-      run: true,
+      // run: true,
     });
 
     var tweenGemTwo = t2.addTween({
-      position: {
-        x: t1.x,
-        y: t1.y
-      },
-
+      position: {x: posX[t1.col], y: posY[t1.row]},
       duration: duration,
       ease: ease,
-      run: true,
+      // run: true,
     });
 
-    tweenGemOne.onComplete(this.findAndRemoveMatches.bind(this));
-    // var self = this;
-
-    if (backFlag == true){
-      tweenGemOne.repeat(1);
-      tweenGemTwo.repeat(1);
-    }
 
     var gems = this.getAllGems();
     var props = ['x', 'y', 'row', 'col'];
@@ -302,27 +304,25 @@
     gems[t1.row][t1.col] = t1;
     gems[t2.row][t2.col] = t2;
 
+        // Если линий не найдено вернуть фишки на их прежние места
+    if (backFlag == true){
+      tweenGemOne.repeat(1);
+      tweenGemTwo.repeat(1);
+    }
 
-    tweenGemTwo.onComplete(function(){
-
-    })
-
+    tweenGemOne.onComplete(this.findAndRemoveMatches.bind(this));
   }
 
 
 
   Board.prototype.findAndRemoveMatches = function() {
+    console.log('findAndRemoveMatches')
+    
     var matches = this.lookForMatches();
-
-    if (matches.length == 0){
-      // console.log('empty');
-      // console.log(this.selection)
-      return false;
-    }
-    // console.log(matches.length)
-    // console.log(matches)
     var gems = this.getAllGems();
     var tweenOut;
+    var tweenDown;
+    var tweenFill;
 
     for (var i = 0; i < matches.length; i++){
       var numPoints = (matches[i].length - 1);
@@ -333,33 +333,28 @@
         if (gems[m.row][m.col]){
           var xNew = this.gemHeight * this.BOARD_ROWS + 200;
 
-          // tweenOut = new TWEEN.Tween(gems[m.row][m.col])
-          //   .to({x: -100}, 500)
-          //   .easing(TWEEN.Easing.Linear.None)
-          //   // .delay(1000)
-          //   .start();
+          // tweenOut = gems[m.row][m.col].addTween({
+          //   position: {x: -200},
+          //   duration: this.animDuration.out,
+          //   ease: TWEEN.Easing.Linear.None,
+          //   delay: 10
+          //   // run: true
+          // })
 
-            tweenOut = gems[m.row][m.col].addTween({
-              position: {x: -200},
-              duration: 200,
-              ease: TWEEN.Easing.Linear.None,
-              run: true
-            })
-          
-            gems[m.row][m.col] = undefined;  
-            this.affectAbove(m) 
+          tweenOut = new TWEEN.Tween(gems[m.row][m.col])
+            .to({x: -200}, this.animDuration.out)
+            .easing(TWEEN.Easing.Linear.None)
+            .start();
 
-          // tweenOut.onComplete(this.affectAbove.bind(this, m));
-
-      }
+            gems[m.row][m.col] = undefined;
+            this.affectAbove(m);
+        }
       }
     }
 
     if (tweenOut){
       tweenOut.onComplete(this.refill.bind(this));
     }
-
-    return true;
   }
 
   Board.prototype.deleteAndRefill = function(gem) {
@@ -433,18 +428,33 @@
 
 
   Board.prototype.affectAbove = function(gem) {
+    console.log('affectAbove');
+    
+    var tweenDown;
+
     for (var row = gem.row - 1; row >= 0; row--){
       if(this.gems[row][gem.col] !== undefined){
-        var yNew = Math.floor(this.gems[row][gem.col].y + this.gemHeight);
+        // var yNew = Math.floor(this.gems[row][gem.col].y + this.gemHeight);
+        var yNew = this.gemPosY[row] + this.gemHeight;
+
+        // console.log(this.gems[row][gem.col].y, this.gemPosY[row])
         
-        var tweenDown = this.gems[row][gem.col].addTween({
-          position: {y: yNew},
-          duration: 800,
-          ease: TWEEN.Easing.Bounce.Out,
-          run: true
-        });
+        // var tweenDown = this.gems[row][gem.col].addTween({
+        //   position: {y: yNew},
+        //   duration: this.animDuration.down,
+        //   ease: TWEEN.Easing.Bounce.Out,
+        //   // run: true
+        // });
+
+            tweenDown = new TWEEN.Tween(this.gems[row][gem.col])
+              .to({y: yNew}, this.animDuration.down)
+              .easing(TWEEN.Easing.Bounce.Out)
+              .start();
 
 
+        tweenDown.onComplete(function(){
+          console.log('tweenDown');
+        })
 
         this.gems[row][gem.col].y = yNew;
         this.gems[row][gem.col].row += 1;
@@ -454,8 +464,9 @@
       } 
     }
 
-    // console.log(this.getAllGems())
-
+    if (tweenDown) {
+      tweenDown.onComplete(this.refill.bind(this));
+    }
   }
 
 
@@ -463,7 +474,7 @@
   Board.prototype.refill = function(){
     var gems = this.getAllGems();
 
-    // console.log(gems);
+    console.log('refill');
 
     var tw = this.gemWidth;
     var th = this.gemHeight;
@@ -471,7 +482,7 @@
     var h = th - this.offsetY;
     var yNew = -Math.floor(this.gemHeight * this.BOARD_ROWS);
 
-    var tweenDown;
+    var tweenFill;
 
     for(var row = 0; row < this.BOARD_ROWS; row++){
       yNew = row * this.gemHeight +this.offsetY;
@@ -485,23 +496,29 @@
             var gem = new Gem(r + this.offsetX, -h, w, h, color);
             this.addGem(gem, row, col);
 
-            // console.log(gem)
-
-            tweenDown = new TWEEN.Tween(gem)
-              .to({y: yNew}, 800)
+            tweenFill = new TWEEN.Tween(gem)
+              .to({y: yNew}, this.animDuration.fill)
               .easing(TWEEN.Easing.Bounce.Out)
               .start();
 
-            // tweenDown = gem.addTween({
-            //   position: {x: yNew},
-            //   duration: 800,
+            // tweenFill = gem.addTween({
+            //   position: {y: yNew},
+            //   duration: this.animDuration.fill,
             //   ease: TWEEN.Easing.Bounce.Out,
+            //   // run: true
             // })
+
+            tweenFill.onComplete(function(){
+              console.log('tweenFill')
+            })
+
           }
       }
     }
 
-    if (tweenDown) tweenDown.onComplete(this.findAndRemoveMatches.bind(this));
+    if (tweenFill){
+      tweenFill.onComplete(this.findAndRemoveMatches.bind(this));
+    }
 
   }
 
@@ -593,17 +610,22 @@ Board.prototype.matchType = function(col,row,type) {
 
   Game.prototype.start = function() {
     this.board.spawn();
-    console.log('start');
+    console.log('start')
 
     // requestId = requestAnimationFrame(this.update.bind(this));
     this.startAnimation();
   }
 
 
-  Game.prototype.update = function() {
-    requestId = requestAnimationFrame(this.update.bind(this));
+  Game.prototype.update = function(time) {
+    requestId = requestAnimationFrame(this.update.bind(this, time));
 
     // console.log('update');
+    if (this.animOut !== undefined && this.animDown !== undefined && this.animFill != undefined){
+      this.animOut.chain(this.animDown);
+      this.animDown.chain(this.animFill)
+      this.animOut.start();
+    }
 
     TWEEN.update();
     this.board.draw();
@@ -614,12 +636,12 @@ Board.prototype.matchType = function(col,row,type) {
 
   Game.prototype.startAnimation = function() {
     // console.log('start animation');
-    requestId = requestAnimationFrame(this.update.bind(this));
+    requestAnimationFrame(this.update.bind(this));
   }
 
-  Game.prototype.stopAnimation = function() {
-    // console.log('stop animation')
-    if(requestId)
-      cancelAnimationFrame(requestId);
-    requestId = 0;
-  }
+  // Game.prototype.stopAnimation = function() {
+  //   // console.log('stop animation')
+  //   if(requestId)
+  //     cancelAnimationFrame(requestId);
+  //   requestId = 0;
+  // }
