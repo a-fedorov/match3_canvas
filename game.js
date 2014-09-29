@@ -63,12 +63,18 @@ function Board(canvas){
 
   // Инидикация набранных очков
   this.score = 0;
-  this.scoreLabel = ui.topPanel.scoreLabel;
+  this.scoreLabel = ui.gamePage.topPanel.scoreLabel;
+
+  this.timer = ui.gamePage.bottomPanel.timer;
+  this.baseLevelTimer = 10000;
+  this.startTime = 0;
+  this.endTime = 0;
+  this.timeId = 0;
 
   this.animDuration = {
-    down: 500,
-    fill: 500,
-    out:  0,
+    down: 700,
+    fill: 600,
+    out:  1200,
     swap: 300,
   };
   
@@ -209,6 +215,8 @@ Board.prototype = {
   },
 
 
+
+
   //  Обмен местами двух камней
   swapGems: function(t1, t2, backFlag){
     var duration = this.animDuration.swap;
@@ -216,12 +224,12 @@ Board.prototype = {
     var posX = this.gemPosX;
     var posY = this.gemPosY;
 
-    tweenGemOne = new TWEEN.Tween(t1)
+    var tweenGemOne = new TWEEN.Tween(t1)
       .to({x: posX[t2.col], y: posY[t2.row]}, this.animDuration.swap)
       .easing(TWEEN.Easing.Linear.None)
       .start();
 
-    tweenGemTwo = new TWEEN.Tween(t2)
+    var tweenGemTwo = new TWEEN.Tween(t2)
       .to({x: posX[t1.col], y: posY[t1.row]}, this.animDuration.swap)
       .easing(TWEEN.Easing.Linear.None)
       .start();
@@ -253,6 +261,29 @@ Board.prototype = {
   updateScore: function (points) {
   	this.score += points;
     this.scoreLabel.update(this.score);
+  },
+
+  setLevelTimer: function (reset) {
+    if (this.timeId){
+      clearTimeout(this.timeId);
+      this.timerId = 0;
+    }
+
+    if (reset){
+      this.startTime = Date.now();
+      this.endTime = this.baseLevelTimer;
+    }
+
+    var delta = this.startTime + this.endTime - Date.now();
+    var percent = (delta / this.endTime) * 100;
+
+    if (delta < 0){
+      this.timer.update(0);
+      console.log('game over');
+    } else {
+      this.timer.update(percent);
+      this.timeId = setTimeout(this.setLevelTimer.bind(this), 30);
+    }
   },
 
 
@@ -376,7 +407,7 @@ Board.prototype = {
 
         tweenDown = new TWEEN.Tween(this.gems[row][gem.col])
           .to({y: yNew}, this.animDuration.down)
-          .easing(TWEEN.Easing.Bounce.Out)
+          .easing(TWEEN.Easing.Quintic.Out)
           .start();
 
         this.gems[row][gem.col].y = yNew;
@@ -412,7 +443,7 @@ Board.prototype = {
 
           tweenFill = new TWEEN.Tween(gem)
             .to({y: this.gemPosY[row]}, this.animDuration.fill + row * 50 )
-            .easing(TWEEN.Easing.Bounce.Out)
+            .easing(TWEEN.Easing.Quintic.Out)
             .start();
         }
       }
@@ -522,6 +553,8 @@ function Game(canvas) {
 Game.prototype = {
   start: function() {
     this.board.spawn();
+    this.board.setLevelTimer(true);
+
     console.log('start')
 
     this.startAnimation();
