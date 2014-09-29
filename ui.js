@@ -1,12 +1,12 @@
 var ui = {
   init: function () {
-    this.menu.startBtn.addEvent();
-    this.menu.optionsBtn.addEvent();
-    this.topPanel.backBtn.addEvent();
+    this.menuPage.startBtn.addEvent();
+    this.menuPage.optionsBtn.addEvent();
+    this.gamePage.topPanel.backBtn.addEvent();
   },
 
-  menu: {
-    element: document.querySelector('.mainPage'),
+  menuPage: {
+    element: document.querySelector('.menuPage'),
 
     show: function () {
       ui.showElement(this.element);
@@ -20,9 +20,10 @@ var ui = {
       element: document.querySelector('.start'),
       addEvent: function () {
         ui.addEvent(this.element, 'click', function(){
-          ui.canvas.show();
-          ui.topPanel.show();
-          ui.menu.hide();
+          ui.gamePage.show();
+          ui.menuPage.hide();
+
+          startGame();
         });
       }
     },
@@ -38,52 +39,56 @@ var ui = {
     
   },
 
-  canvas: {
-    container: document.querySelector('.container'),
-    element: document.getElementById('board'),
-
-    show: function () {
-      ui.showElement(ui.canvas.container);
-    },
-
-    hide: function () {
-      ui.hideElement(ui.canvas.container);
-    },
-  },
-
-
-  topPanel: {
-    element: document.querySelector('.topPanel'),
-
-    show: function () {
-      ui.showElement(ui.topPanel.element);
-    },
-
-    hide: function () {
-      ui.hideElement(ui.topPanel.element);
-    },
-
-    scoreLabel: {
-      element: document.querySelector('.score'),
-      update: function(points){
-        this.element.innerHTML = 'Score: ' + points;
-      },
-      reset: function(){
-        this.element.innerHTML = 'Score: 0';
-      }
-    },
+  gamePage: {
+    element: document.querySelector('.gamePage'),
     
-    backBtn: {
-      element: document.querySelector('.exit'),
-      addEvent: function () {
-        ui.addEvent(this.element, 'click', function(){
-          ui.canvas.hide();
-          ui.topPanel.hide();
-          ui.menu.show();
-          ui.topPanel.scoreLabel.reset();
-        })
+    show: function(){
+      ui.showElement(this.element);
+    },
+
+    hide: function(){
+      ui.hideElement(this.element);
+    },
+
+    canvas: {
+      element: document.getElementById('board'),
+    },
+
+    topPanel: {
+      element: document.querySelector('.topPanel'),
+
+      scoreLabel: {
+        element: document.querySelector('.score'),
+        update: function(points){
+          this.element.innerHTML = 'Score: ' + points;
+        },
+        reset: function(){
+          this.element.innerHTML = 'Score: 0';
+        }
+      },
+      
+      backBtn: {
+        element: document.querySelector('.exit'),
+        addEvent: function () {
+          ui.addEvent(this.element, 'click', function(){
+            ui.gamePage.hide();
+            ui.menuPage.show();
+
+            ui.gamePage.topPanel.scoreLabel.reset();
+          })
+        }
       }
-    }
+    },
+
+    bottomPanel: {
+      element: document.querySelector('.bottomPanel'),
+      timer: {
+        element: document.querySelector('.indicator'),
+        update: function (percent) {
+          this.element.style.width = percent + '%';
+        },
+      }
+    },
   },
 
   showElement: function (el) {
@@ -102,12 +107,12 @@ var ui = {
 
 }
 
+  
   var game;
+  
   function startGame(){
-    ui.init();
 
-    var canvas = document.getElementById('board');
-    game = new Game(canvas)
+    game = new Game(ui.gamePage.canvas.element)
     game.start();
 
     // gremlinTest();
@@ -118,4 +123,5 @@ var ui = {
     horde.unleash();
   }
 
-  window.onload = startGame;
+  ui.init();
+  // window.onload = startGame;
