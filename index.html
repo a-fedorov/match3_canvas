@@ -5,28 +5,39 @@
 	<title>Match3 Canvas</title>
 	
 	<link rel="stylesheet" href="style.css">
-    
-    <!-- // <script src="js/bower_components/jquery/dist/jquery.min.js"></script> -->
-
+   
 </head>
 <body>
-	<div class="mainPage">
-		<ul class="menu">
-			<li class="item start"><a href="#">Start</a></li>
-			<li class="item options"><a href="#">Options</a></li>
-			<li class="item highscore"><a href="#">Highscore</a></li>
-		</ul>
-	</div>
+	<div class="gameContainer">
 
-	<div class="topPanel">
-		<p class="score" id="score">Score: 0</p>
-		<p class="exit"><a href="#">Back</a></p>
-	</div>
+		<div class="menuPage">
+			<ul class="menu">
+				<li class="item start"><a href="#">Start</a></li>
+				<li class="item options"><a href="#">Options</a></li>
+				<li class="item highscore"><a href="#">Highscore</a></li>
+			</ul>
+		</div>
 
-	<div class="container">
-		<canvas id="board" width="725" height="725"></canvas>
-	</div>
+		<div class="gamePage">
+			<div class="topPanel">
+				<p class="score" id="score">Score: 0</p>
+				<p class="exit"><a href="#">Back</a></p>
+			</div>
+			
+			<canvas id="board" width="725" height="725"></canvas>
 
+			<div class="bottomPanel">
+				<div class="time">
+					<div class="indicator">
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="gameOverPage">
+			
+		</div>
+	</div>
 	
 	<script src="tweenjs.js"></script>
 	<script src="gremlins.min.js"></script>
