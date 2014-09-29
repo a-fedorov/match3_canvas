@@ -1,42 +1,121 @@
+var ui = {
+  init: function () {
+    this.menu.startBtn.addEvent();
+    this.menu.optionsBtn.addEvent();
+    this.topPanel.backBtn.addEvent();
+  },
 
-  var menu = document.querySelector('.mainPage');
-  var canvasContainer = document.querySelector('.container')
-  var topPanel = document.querySelector('.topPanel');
+  menu: {
+    element: document.querySelector('.mainPage'),
 
-    var back = document.querySelector('.exit');
-  back.addEventListener('click', showMenu, false);
+    show: function () {
+      ui.showElement(this.element);
+    },
 
-  var start = document.querySelector('.start');
-  start.addEventListener('click', startGame, false);
+    hide: function () {
+      ui.hideElement(this.element);
+    },
 
-  function showMenu(){
-    menu.style.visibility = 'visible';
-    menu.style.opacity = '1';
+    startBtn: {
+      element: document.querySelector('.start'),
+      addEvent: function () {
+        ui.addEvent(this.element, 'click', function(){
+          ui.canvas.show();
+          ui.topPanel.show();
+          ui.menu.hide();
+        });
+      }
+    },
 
-    canvasContainer.style.opacity = '0';
-    canvasContainer.style.visibility = 'hidden';
+    optionsBtn: {
+      element: document.querySelector('.options'),
+      addEvent: function () {
+        ui.addEvent(this.element, 'click', function(){
+          console.log('no options')
+        })
+      },
+    }
+    
+  },
 
-    topPanel.style.visibility = 'hidden';
-    topPanel.style.opacity = '0';
+  canvas: {
+    container: document.querySelector('.container'),
+    element: document.getElementById('board'),
 
-  }
+    show: function () {
+      ui.showElement(ui.canvas.container);
+    },
 
+    hide: function () {
+      ui.hideElement(ui.canvas.container);
+    },
+  },
+
+
+  topPanel: {
+    element: document.querySelector('.topPanel'),
+
+    show: function () {
+      ui.showElement(ui.topPanel.element);
+    },
+
+    hide: function () {
+      ui.hideElement(ui.topPanel.element);
+    },
+
+    scoreLabel: {
+      element: document.querySelector('.score'),
+      update: function(points){
+        this.element.innerHTML = 'Score: ' + points;
+      },
+      reset: function(){
+        this.element.innerHTML = 'Score: 0';
+      }
+    },
+    
+    backBtn: {
+      element: document.querySelector('.exit'),
+      addEvent: function () {
+        ui.addEvent(this.element, 'click', function(){
+          ui.canvas.hide();
+          ui.topPanel.hide();
+          ui.menu.show();
+          ui.topPanel.scoreLabel.reset();
+        })
+      }
+    }
+  },
+
+  showElement: function (el) {
+    el.style.visibility = 'visible';
+    el.style.opacity = '1';
+  },
+
+  hideElement: function (el) {
+    el.style.visibility = 'hidden';
+    el.style.opacity = '0';
+  },
+
+  addEvent: function(el, eventType, eventFunction){
+    el.addEventListener('click', eventFunction, true);
+  },
+
+}
 
   var game;
-
   function startGame(){
-    menu.style.visibility = 'hidden';
-    menu.style.opacity = '0';
-
-    
-    canvasContainer.style.visibility = 'visible';
-    canvasContainer.style.opacity = '1';
-
-    topPanel.style.visibility = 'visible';
-    topPanel.style.opacity = '1';
+    ui.init();
 
     var canvas = document.getElementById('board');
     game = new Game(canvas)
     game.start();
+
+    // gremlinTest();
   }
 
+  function gremlinTest(){
+    var horde = gremlins.createHorde().gremlin(gremlins.species.clicker().clickTypes(['click'])); 
+    horde.unleash();
+  }
+
+  window.onload = startGame;
