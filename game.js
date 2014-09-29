@@ -1,289 +1,230 @@
-  var requestId = 0;
+var requestId = 0;
 
-  // Constructor for Gem objects to hold data for all drawn objects.
-  // For now they will just be defined as rectangles.
-  function Gem(x, y, w, h, fill) {
-    this.x = x || 0;
-    this.y = y || 0;
-    this.w = w || 1;
-    this.h = h || 1;
-    this.row = 0;
-    this.col = 0;
-    this.fill = fill || '#AAAAAA';
-  }
+function Gem(x, y, w, h, fill) {
+  this.x = x || 0;
+  this.y = y || 0;
+  this.w = w || 1;
+  this.h = h || 1;
+  this.row = 0;
+  this.col = 0;
+  this.fill = fill || '#AAAAAA';
+}
 
-
-  // Draws this shape to a given context
-  Gem.prototype.draw = function(ctx) {
+Gem.prototype = {
+  draw: function(ctx) {
     ctx.fillStyle = this.fill;
     ctx.fillRect(this.x, this.y, this.w, this.h);
-  }
+  },
 
-
-  // Determine if a point is inside the shape's bounds
-  Gem.prototype.contains = function(mx, my) {
+  // Проверить находится ли точка внутри элемента
+  contains: function(mx, my) {
     // All we have to do is make sure the Mouse X,Y fall in the area between
     // the shape's X and (X + Width) and its Y and (Y + Height)
     return  (this.x <= mx) && (this.x + this.w >= mx) &&
             (this.y <= my) && (this.y + this.h >= my);
   }
+}
 
-  Gem.prototype.move = function(position){
-    // console.log(position)
+
+function Board(canvas){
+  this.cols = 8;
+  this.rows = 8;
+
+  this.canvas = canvas;
+  this.width = canvas.width;
+  this.height = canvas.height;
+  this.ctx = canvas.getContext('2d');
+  
+  this.offsetX = this.offsetY = 5;
+  
+  this.gems = [];
+  this.gemSize = this.gemSize = 90;
+  this.gemSizeSpaced = this.gemSize + this.offsetX;
+  this.gemColors = [
+    'rgba(241, 196, 15,  .6)', /* yeloow */
+    'rgba(155, 89,  182, .6)', /* violet */
+    'rgba(46,  204, 113, .6)', /* green */
+    'rgba(52,  152, 219, .6)', /* blue */
+    'rgba(52,  73,  94,  .5)', /* gray */
+    'rgba(231, 76,  60,  .6)', /* red */
+  ];
+
+  // Расчёт координат для каждого элемента на поле
+  this.gemPosX = this.gemPosY = [];
+  for (var i = 0; i < this.cols; i++){
+    this.gemPosX[i] = this.offsetX + this.gemSize * i;
+    this.gemPosY[i] = this.offsetY + this.gemSize * i;
   }
 
+  // the current selected object. In the future we could turn this into an array for multiple selection
+  this.selection = [];
+  this.selectionColor = 'rgba(0,0,0,.8)';
+  this.selectionWidth = 3;
 
-  Gem.prototype.addTween = function(options){
-    if (typeof(options) != 'object') return;
+  // Инидикация набранных очков
+  this.score = 0;
+  this.scoreLabel = ui.topPanel.scoreLabel;
 
-    var position = options.position;
-    var duration = options.duration;
-    var ease = options.ease;
-    var delay = options.delay || 0;
-
-    return new TWEEN.Tween(this).to(position, duration).delay(delay).easing(ease).start();
+  this.animDuration = {
+    down: 500,
+    fill: 500,
+    out:  0,
+    swap: 300,
+  };
+  
+  // This complicates things a little but but fixes mouse co-ordinate problems
+  // when there's a border or padding. See getMouse for more detail
+  var stylePaddingLeft, stylePaddingTop, styleBorderLeft, styleBorderTop;
+  if (document.defaultView && document.defaultView.getComputedStyle) {
+    this.stylePaddingLeft = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingLeft'], 10)     || 0;
+    this.stylePaddingTop  = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingTop'], 10)      || 0;
+    this.styleBorderLeft  = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderLeftWidth'], 10) || 0;
+    this.styleBorderTop   = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderTopWidth'], 10)  || 0;
   }
 
+  // Some pages have fixed-position bars (like the stumbleupon bar) at the top or left of the page
+  // They will mess up mouse coordinates and this fixes that
+  var html = document.body.parentNode;
+  this.htmlTop = html.offsetTop;
+  this.htmlLeft = html.offsetLeft;
+
+  var self = this;    
+  //fixes a problem where double clicking causes text to get selected on the canvas
+  canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
+  canvas.addEventListener('click', function(e) { self.selectGem(e); }, true );
+}
 
 
-  function Board(canvas){
-    this.BOARD_COLS = 4;
-    this.BOARD_ROWS = 4;
 
-    this.gems = [];
+Board.prototype = {
 
-    this.offsetX = this.offsetY = 5;
-    this.gemWidth = this.gemHeight = 90;
-    this.gemSizeSpaced = this.gemWidth + this.offsetX;
-
-    this.gemPosX = [];
-    this.gemPosY = [];
-
-    // Расчёт координат для каждого элемента на поле
-    for (var i = 0; i < this.BOARD_COLS; i++){
-      this.gemPosX[i] = this.offsetX + this.gemWidth*i;
-    }
-
-    for (var i = 0; i < this.BOARD_ROWS; i++){
-      this.gemPosY[i] = this.offsetY + this.gemHeight*i;
-    }
-
-    // this.anim = [];
-    this.animDown = undefined;
-    this.animOut = undefined;
-    this.animFill = undefined;
-
-    this.animDuration = {
-      down: 400,
-      fill: 500,
-      out:  0,
-      swap: 300,
-    };
-    
-    this.gemsColor = [
-      'rgba(52,  73,  94,  .5)',
-      'rgba(241, 196, 15,  .6)', /* yeloow */
-      'rgba(46,  204, 113, .6)', /* green */
-      'rgba(52,  152, 219, .6)', /* blue */
-      'rgba(231, 76,  60,  .6)',  /* red */
-      'rgba(155, 89,  182, .6)', /* violet */
-    ];
-
-    this.canvas = canvas;
-    this.width = canvas.width;
-    this.height = canvas.height;
-    this.ctx = canvas.getContext('2d');
-    
-    // This complicates things a little but but fixes mouse co-ordinate problems
-    // when there's a border or padding. See getMouse for more detail
-    var stylePaddingLeft, tsylePaddingTop, styleBorderLeft, styleBorderTop;
-    
-    this.fixCanvasMouseCoord();
-
-
-    // **** Keep track of state! ****
-    
-    // this.valid = false; // when set to false, the canvas will redraw everything
-    this.gems = [];  // the collection of things to be drawn
-    // the current selected object. In the future we could turn this into an array for multiple selection
-    this.selection = [];
-    
-    // **** Then events! ****
-    var self = this;
-    
-    //fixes a problem where double clicking causes text to get selected on the canvas
-    canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
-    canvas.addEventListener('click', function(e) { self.selectGem(e); }, true );
-
-    this.selectionColor = 'rgba(0,0,0,.8)';
-    this.selectionWidth = 3;
-  }
-
-
-  Board.prototype.fixCanvasMouseCoord = function(){
-    var canvas =  this.canvas;
-    if (document.defaultView && document.defaultView.getComputedStyle) {
-      this.stylePaddingLeft = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingLeft'], 10)     || 0;
-      this.stylePaddingTop  = parseInt(document.defaultView.getComputedStyle(canvas, null)['paddingTop'], 10)      || 0;
-      this.styleBorderLeft  = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderLeftWidth'], 10) || 0;
-      this.styleBorderTop   = parseInt(document.defaultView.getComputedStyle(canvas, null)['borderTopWidth'], 10)  || 0;
-    }
-
-    // Some pages have fixed-position bars (like the stumbleupon bar) at the top or left of the page
-    // They will mess up mouse coordinates and this fixes that
-    var html = document.body.parentNode;
-    this.htmlTop = html.offsetTop;
-    this.htmlLeft = html.offsetLeft;
-  }
-
-
-  // While draw is called as often as the INTERVAL variable demands,
-  // It only ever does something if the canvas gets invalidated by our code
-  Board.prototype.draw = function() {
+  // Перерисовка поля 
+  // Происходит в вызове requiestAnimationFrame
+  draw: function() {
     var ctx = this.ctx;
     var gems = this.gems;
     this.clear();
     
-    // ** Add stuff you want drawn in the background all the time here **
-    
-    // draw all gems
-    for (var i = 0; i < this.BOARD_ROWS; i++){
-      for (var j = 0; j < this.BOARD_COLS; j++){
+    // Отрисовать все камни
+    for (var i = 0; i < this.rows; i++){
+      for (var j = 0; j < this.cols; j++){
         if (gems[i][j] == undefined) continue;
         gems[i][j].draw(ctx);
       }
     }
     
-    // draw selection
-    // right now this is just a stroke along the edge of the selected Gem
+    // Отрисовать выделение вокруг выбранного камня
     var length = this.selection.length;
     if (length > 0) {
+      ctx.lineWidth = this.selectionWidth;
+      ctx.strokeStyle = this.selectionColor;
+
       for (var i = 0; i < length; i++){
         var mySel = this.selection[i];
-
-        ctx.lineWidth = this.selectionWidth;
-        ctx.strokeStyle = this.selectionColor;
         ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
       }
     }
-  }
+  },
 
 
-  Board.prototype.clear = function() {
+  // Очистка всего поля
+  clear: function() {
     this.ctx.clearRect(0, 0, this.width, this.height);
-  }
+  },
 
+  // Заполнение поля камнями
+  spawn: function(){
+    var w = this.gemSize - this.offsetX;
+    var h = this.gemSize - this.offsetY;
+    var colorsLength = this.gemColors.length;
 
-  Board.prototype.spawn = function(){
-    var w = this.gemWidth - this.offsetX;
-    var h = this.gemHeight - this.offsetY;
-
-    for (var i = 0; i < this.BOARD_ROWS; i++){
+    for (var i = 0; i < this.rows; i++){
       this.gems[i] = [];
-      for (var j = 0; j < this.BOARD_COLS; j++){
-        var color = this.gemsColor[ Math.floor( Math.random() * this.gemsColor.length )];
+      for (var j = 0; j < this.cols; j++){
+        var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
         var g = new Gem(this.gemPosX[j], this.gemPosY[i], w, h, color);
         this.addGem(g, i, j)
       }
     }
 
-    this.findAndRemoveMatches();
-  }
+    // this.findAndRemoveMatches();
+    // Заполнять поле пока на нём не будет ни одной линии из камней
+    var match = this.lookForMatches();
+    if (match.length != 0){
+      this.spawn();
+    }
+  },
 
 
-  Board.prototype.addGem = function(gem, i, j) {
+  addGem: function(gem, i, j) {
     gem.row = i;
     gem.col = j;
     this.gems[i][j] = gem;
-    this.valid = false;
-
-    return this.gems[i][j];
-  }
+  },
 
 
-  Board.prototype.selectGem = function(e) {
+  selectGem: function(e) {
     var mouse = this.getMouse(e);
-    var mx = mouse.x;
-    var my = mouse.y;
     var gems = this.gems;
 
-    var st = [];
+    for (var i = 0; i < this.rows; i++){
+      for (var j = 0; j < this.cols; j++){
+        if (gems[i][j] !== undefined && gems[i][j].contains(mouse.x, mouse.y)){
 
-    for (var i = 0; i < this.BOARD_ROWS; i++){
-      for (var j = 0; j < this.BOARD_COLS; j++){
-        if (gems[i][j] !== undefined && gems[i][j].contains(mx, my)) {
-          var mySel = gems[i][j];
-          // Keep track of where in the object we clicked
-          // so we can move it smoothly (see mousemove)
-          this.selection.push(mySel);
-          this.valid = false;
+          this.selection.push(gems[i][j]);
 
-          st = this.selection;
-
-          if (st.length == 2){
-            if (st[0].row == st[1].row && st[0].col == st[1].col){
-              // console.log('same');
-              console.log(st[0].row, st[0].col, st[0].y)
+          if (this.selection.length == 2){
+          	var prevSel = this.selection[0];
+          	var curSel = this.selection[1];
+            
+            // Если выбран тот же камень - снять выделение
+            // Иначе проверить не являются ли выбранные камни соседними
+            if (prevSel.row == curSel.row && prevSel.col == curSel.col){
               this.selection = [];
+            } else if (Math.abs(prevSel.col - curSel.col) == 1 && prevSel.row == curSel.row || 
+                       Math.abs(prevSel.row - curSel.row) == 1 && prevSel.col == curSel.col) {
 
-            } else if (Math.abs(st[0].col - st[1].col) == 1 && st[0].row == st[1].row || 
-                       Math.abs(st[0].row - st[1].row) == 1 && st[0].col == st[1].col){
-              
-              // console.log('neibour');                      
-              this.swapGems(st[0], st[1]);
+	            this.swapGems(prevSel, curSel);
 
+	            // Если передвинутые камни не создают линию - поменять их местами обратно
               var matches = this.lookForMatches();
               if (matches.length == 0){
-                this.swapGems(st[0], st[1], true)
+                this.swapGems(prevSel, curSel, true)
               }
-              
 
               this.selection = [];
             }
-            st.shift();
-          } 
 
-          if (st.length > 2){ 
-            st.length = 2; 
-          };
+            this.selection.shift();
+          } 
 
           return;
         }
       }
     }
+  },
 
-    // havent returned means we have failed to select anything.
-    // If there was an object selected, we deselect it
-    if (this.selection) {
-      this.selection = [];
-    }
-  }
-
-  Board.prototype.getAllGems = function(){
+  getAllGems: function(){
     return this.gems;
-  }
+  },
 
 
-  Board.prototype.swapGems = function(t1, t2, backFlag){
+  //  Обмен местами двух камней
+  swapGems: function(t1, t2, backFlag){
     var duration = this.animDuration.swap;
     var ease = TWEEN.Easing.Linear.None;
-    // var ease = TWEEN.Easing.Quintic.Out
     var posX = this.gemPosX;
     var posY = this.gemPosY;
 
-    var tweenGemOne = t1.addTween({
-      position: {x: posX[t2.col], y: posY[t2.row]},
-      duration: duration,
-      ease: ease,
-      // run: true,
-    });
+    tweenGemOne = new TWEEN.Tween(t1)
+      .to({x: posX[t2.col], y: posY[t2.row]}, this.animDuration.swap)
+      .easing(TWEEN.Easing.Linear.None)
+      .start();
 
-    var tweenGemTwo = t2.addTween({
-      position: {x: posX[t1.col], y: posY[t1.row]},
-      duration: duration,
-      ease: ease,
-      // run: true,
-    });
+    tweenGemTwo = new TWEEN.Tween(t2)
+      .to({x: posX[t1.col], y: posY[t1.row]}, this.animDuration.swap)
+      .easing(TWEEN.Easing.Linear.None)
+      .start();
 
 
     var gems = this.getAllGems();
@@ -305,74 +246,67 @@
     }
 
     tweenGemOne.onComplete(this.findAndRemoveMatches.bind(this));
-  }
+  },
 
 
+  // Обновление количества набранных очков
+  updateScore: function (points) {
+  	this.score += points;
+    this.scoreLabel.update(this.score);
+  },
 
-  Board.prototype.findAndRemoveMatches = function() {
+
+  //  Поиск и удаление линий из одинаковых камней
+  findAndRemoveMatches: function() {
     console.log('findAndRemoveMatches')
     
-    var matches = this.lookForMatches();
+    var self = this;
     var gems = this.getAllGems();
+    var matches = this.lookForMatches();
+    // var yNew = this.gemSize * this.rows + 200;
+
     var tweenOut;
-    var tweenDown;
-    var tweenFill;
+    var isRemove = false;
 
     for (var i = 0; i < matches.length; i++){
-      var numPoints = (matches[i].length - 1);
-      var deletedCount = 0;
+      var numPoints = matches[i].length;
+		  this.updateScore(numPoints);
+
       for (var j = 0; j < matches[i].length; j++){
         var m = matches[i][j];
-        var g = gems[m.row][m.col];
 
         if (gems[m.row][m.col]){
-          var yNew = this.gemHeight * this.BOARD_ROWS + 200;
+        	
+          // tweenOut = new TWEEN.Tween(gems[m.row][m.col])
+          // .to({y: -100}, self.animDuration.out)
+          // .easing(TWEEN.Easing.Linear.None)
+          // .start();
 
-          // tweenOut = gems[m.row][m.col].addTween({
-          //   position: {x: -200},
-          //   duration: this.animDuration.out,
-          //   ease: TWEEN.Easing.Linear.None,
-          //   delay: 10
-          //   // run: true
-          // })
+          gems[m.row][m.col] = undefined;
+          this.affectAbove(m);
 
-          var self = this;
-
-          // (function(){
-            tweenOut = new TWEEN.Tween(g)
-            .to({y: yNew}, self.animDuration.out)
-            .easing(TWEEN.Easing.Linear.None)
-            .start();
-          // })();
-
-
-              gems[m.row][m.col] = undefined;
-              this.affectAbove(m);
-            // })
-          // })(m, gems[m.row][m.col]);
-
-            // tweenOut.onComplete(function(){ g = undefined; self.affectAbove(m); })
+          isRemove = true;
         }
       }
     }
 
-    if (tweenOut){
-      tweenOut.onComplete(this.refill.bind(this));
+    if (isRemove){
+      this.refill();
     }
 
     if(matches.length == 0){
-      // if (!this.lookForPossibles()){
-        console.log(this.lookForPossibles())
-      // }
+      if (!this.lookForPossibles()){
+        console.log('Game Over')
+      }
     }
-  }
+  },
 
 
-  Board.prototype.lookForMatches = function() {
+  lookForMatches: function() {
     var matchList = [];
 
-    for(var row = 0; row < this.BOARD_ROWS; row++){
-      for(var col = 0; col < this.BOARD_COLS; col++){
+    for(var row = 0; row < this.rows; row++){
+      for(var col = 0; col < this.cols; col++){
         var match = this.getMatchHoriz(col, row);
         if(match.length > 2){
           matchList.push(match);
@@ -381,8 +315,8 @@
       }
     }
 
-    for(var col = 0; col < this.BOARD_COLS; col++){
-      for(var row = 0; row < this.BOARD_ROWS; row++){
+    for(var col = 0; col < this.cols; col++){
+      for(var row = 0; row < this.rows; row++){
         var match = this.getMatchVert(col, row);
         if(match.length > 2){
           matchList.push(match);
@@ -392,14 +326,14 @@
     }
 
     return matchList;
-  }
+  },
 
 
-  Board.prototype.getMatchHoriz = function(col, row){
+  getMatchHoriz: function(col, row){
     var match = [];
     var gems = this.getAllGems();
 
-    for(var i = 0; col + i < this.BOARD_COLS; i++){
+    for(var i = 0; col + i < this.cols; i++){
       if(gems[col][row] !== undefined && 
          gems[col+i][row] !== undefined &&
          gems[col][row].fill == gems[col + i][row].fill){
@@ -410,14 +344,14 @@
     }
 
     return match;
-  }
+  },
 
 
-  Board.prototype.getMatchVert = function(col, row){
+  getMatchVert: function(col, row){
     var match = [];
     var gems = this.getAllGems();
 
-    for(var i = 0; row + i < this.BOARD_ROWS; i++){
+    for(var i = 0; row + i < this.rows; i++){
       if(gems[col][row] !== undefined && 
          gems[col][row+i] !== undefined && 
          gems[col][row].fill == gems[col][row + i].fill){
@@ -428,18 +362,17 @@
     }
 
     return match;
-  }
+  },
 
 
-  Board.prototype.affectAbove = function(gem) {
+  affectAbove: function(gem) {
     console.log('affectAbove');
     
     var tweenDown;
 
     for (var row = gem.row - 1; row >= 0; row--){
       if(this.gems[row][gem.col] !== undefined){
-        // var yNew = Math.floor(this.gems[row][gem.col].y + this.gemHeight);
-        var yNew = this.gemPosY[row] + this.gemHeight;
+        var yNew = this.gemPosY[row] + this.gemSize;
 
         tweenDown = new TWEEN.Tween(this.gems[row][gem.col])
           .to({y: yNew}, this.animDuration.down)
@@ -453,50 +386,35 @@
       } 
     }
 
-    if (tweenDown) {
-      tweenDown.onComplete(this.refill.bind(this));
-    }
-  }
+    // if (tweenDown) {
+    //   tweenDown.onComplete(this.refill.bind(this));
+    // }
+
+    // return this;
+  },
 
 
-
-  Board.prototype.refill = function(){
-    var gems = this.getAllGems();
-
+  refill: function(){
     console.log('refill');
 
-    var tw = this.gemWidth;
-    var th = this.gemHeight;
-    var w = tw - this.offsetX;
-    var h = th - this.offsetY;
-    var yNew = -Math.floor(this.gemHeight * this.BOARD_ROWS);
-
+    var gems = this.getAllGems();
+    var w = this.gemSize - this.offsetX;
+    var h = this.gemSize - this.offsetY;
+    var colorsLength = this.gemColors.length;
     var tweenFill;
 
-    for(var row = 0; row < this.BOARD_ROWS; row++){
-      yNew = row * this.gemHeight +this.offsetY;
+    for(var row = 0; row < this.rows; row++){
+      for(var col = 0; col < this.cols; col++){
+        if(gems[row][col] == undefined){
+          var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];            
+	        var gem = new Gem(this.gemPosX[col], -h, w, h, color);
+          this.addGem(gem, row, col);
 
-      for(var col = 0; col < this.BOARD_COLS; col++){
-
-          if(gems[row][col] == undefined){
-            var r = col * tw;
-            var c = row * th;
-            var color = this.gemsColor[ Math.floor( Math.random() * this.gemsColor.length )];
-            
-            var gem = new Gem(r + this.offsetX, -h, w, h, color);
-            this.addGem(gem, row, col);
-
-
-            tweenFill = new TWEEN.Tween(gem)
-              .to({y: yNew}, 550 + 50*row/*this.animDuration.fill*/)
-              .easing(TWEEN.Easing.Bounce.Out)
-              .start();
-
-            tweenFill.onComplete(function(){
-              console.log('tweenFill')
-            })
-
-          }
+          tweenFill = new TWEEN.Tween(gem)
+            .to({y: this.gemPosY[row]}, this.animDuration.fill + row * 50 )
+            .easing(TWEEN.Easing.Bounce.Out)
+            .start();
+        }
       }
     }
 
@@ -504,14 +422,16 @@
       tweenFill.onComplete(this.findAndRemoveMatches.bind(this));
     }
 
-  }
+    // return this;
+
+  },
 
 
-  Board.prototype.lookForPossibles = function(){
+  lookForPossibles: function(){
     console.log('lookForPossibles');
 
-    for(var row = 0; row < this.BOARD_COLS; row++){
-      for(var col = 0; col < this.BOARD_ROWS; col++){
+    for(var row = 0; row < this.cols; row++){
+      for(var col = 0; col < this.rows; col++){
           // console.log('match')
 
         // воможна горизонтальная, две подряд 
@@ -538,14 +458,11 @@
     }
 
     return false;
-  }
+  },
 
-  Board.prototype.matchPattern = function(col, row, mustHave, needOne) {
-
+  matchPattern: function(col, row, mustHave, needOne) {
     // console.log('matchPattern')
 
-    // console.log(col, row)
-    
     var thisType = this.gems[col][row].fill;
 
     for (var i = 0; i < mustHave.length; i++){
@@ -561,23 +478,19 @@
     }
 
     return false;
-  }
-Board.prototype.matchType = function(row,col,type) {    
-  // console.log('matchType')
-  // убедимся, что фишка не выходит за пределы поля    
-  if ((col < 0) || (col >= this.BOARD_COLS) || (row < 0) || (row >= this.BOARD_ROWS)) return false;
-  
-    // console.log('r:', row, 'c:', col) 
-    return (this.gems[row][col].fill == type);   
-     // return true;
-}  
+  },
+
+  matchType: function(row,col,type) {    
+    // console.log('matchType')
+    // убедимся, что фишка не выходит за пределы поля    
+    if ((col < 0) || (col >= this.cols) || (row < 0) || (row >= this.rows)) return false;  
+    return (this.gems[row][col].fill == type);
+  },
 
 
-  // Board.prototype.moveGem
- 
   // Creates an object with x and y defined, set to the mouse position relative to the state's canvas
   // If you wanna be super-correct this can be tricky, we have to worry about padding and borders
-  Board.prototype.getMouse = function(e) {
+  getMouse: function(e) {
     var element = this.canvas, offsetX = 0, offsetY = 0, mx, my;
     
     // Compute the total offset
@@ -596,38 +509,37 @@ Board.prototype.matchType = function(row,col,type) {
     mx = e.pageX - offsetX;
     my = e.pageY - offsetY;
     
-    // We return a simple javascript object (a hash) with x and y defined
     return { x: mx, y: my };
   }
+}
 
 
-  function Game(canvas) {
-    this.board = new Board(canvas);
-  }
+  
+function Game(canvas) {
+  this.board = new Board(canvas);
+}
 
-  Game.prototype.start = function() {
+Game.prototype = {
+  start: function() {
     this.board.spawn();
     console.log('start')
 
-    // requestId = requestAnimationFrame(this.update.bind(this));
     this.startAnimation();
-  }
+  },
 
-
-  Game.prototype.update = function(time) {
+  update: function(time) {
     requestAnimationFrame(this.update.bind(this, time));
 
     TWEEN.update();
     this.board.draw();
-  }
+  },
 
-
-  Game.prototype.startAnimation = function() {
+  startAnimation: function() {
     // console.log('start animation');
     requestAnimationFrame(this.update.bind(this));
   }
-
-  // Game.prototype.stopAnimation = function() {
+}
+  // Game.prototype.stopAnimation: function() {
   //   // console.log('stop animation')
   //   if(requestId)
   //     cancelAnimationFrame(requestId);
