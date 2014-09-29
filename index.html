@@ -4,21 +4,22 @@
 	<meta charset="UTF-8">
 	<title>Match3 Canvas</title>
 	
-	<script src="tweenjs.js"></script>	
 	<link rel="stylesheet" href="style.css">
+    
+    <!-- // <script src="js/bower_components/jquery/dist/jquery.min.js"></script> -->
 
 </head>
 <body>
 	<div class="mainPage">
 		<ul class="menu">
 			<li class="item start"><a href="#">Start</a></li>
-			<li class="item"><a href="#">Options</a></li>
-			<li class="item"><a href="#">Highscore</a></li>
+			<li class="item options"><a href="#">Options</a></li>
+			<li class="item highscore"><a href="#">Highscore</a></li>
 		</ul>
 	</div>
 
 	<div class="topPanel">
-		<p class="score">Score: 0</p>
+		<p class="score" id="score">Score: 0</p>
 		<p class="exit"><a href="#">Back</a></p>
 	</div>
 
@@ -26,6 +27,9 @@
 		<canvas id="board" width="725" height="725"></canvas>
 	</div>
 
+	
+	<script src="tweenjs.js"></script>
+	<script src="gremlins.min.js"></script>
 
 	<script src="ui.js"></script>
 	<script src="game.js"></script>
