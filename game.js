@@ -26,6 +26,18 @@ Gem.prototype = {
 }
 
 
+
+function SpecialGem(x, y, w, h, fill, type) {
+  // Вызов конструктора класса-родителя
+  Gem.call(this, x, y, w, h, fill);
+  this.type = type;
+}
+
+SpecialGem.prototype = Object.create(Gem.prototype);
+SpecialGem.prototype.constructor = SpecialGem;
+
+
+
 function Board(canvas){
   this.cols = 8;
   this.rows = 8;
@@ -48,6 +60,14 @@ function Board(canvas){
     'rgba(52,  73,  94,  .5)', /* gray */
     'rgba(231, 76,  60,  .6)', /* red */
   ];
+
+  this.specialGemsType = [
+    'bomb', 
+    'bombVertical', 
+    'bombHorizontal', 
+    'bombColored'
+  ];
+
 
   // Расчёт координат для каждого элемента на поле
   this.gemPosX = this.gemPosY = [];
@@ -148,16 +168,18 @@ Board.prototype = {
       this.gems[i] = [];
       for (var j = 0; j < this.cols; j++){
         var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
+
         var g = new Gem(this.gemPosX[j], this.gemPosY[i], w, h, color);
         this.addGem(g, i, j)
       }
     }
 
+
     // this.findAndRemoveMatches();
     // Заполнять поле пока на нём не будет ни одной линии из камней
     var match = this.lookForMatches();
     if (match.length != 0){
-      this.spawn();
+      // this.spawn();
     }
   },
 
@@ -294,7 +316,14 @@ Board.prototype = {
     var self = this;
     var gems = this.getAllGems();
     var matches = this.lookForMatches();
-    // var yNew = this.gemSize * this.rows + 200;
+
+
+
+    // console.log(ans);
+
+    // console.log(matches)
+    this.findSpecialTiles();
+
 
     var tweenOut;
     var isRemove = false;
@@ -397,7 +426,7 @@ Board.prototype = {
 
 
   affectAbove: function(gem) {
-    console.log('affectAbove');
+    // console.log('affectAbove');
     
     var tweenDown;
 
@@ -426,7 +455,7 @@ Board.prototype = {
 
 
   refill: function(){
-    console.log('refill');
+    // console.log('refill');
 
     var gems = this.getAllGems();
     var w = this.gemSize - this.offsetX;
@@ -457,9 +486,120 @@ Board.prototype = {
 
   },
 
+  findSpecialTiles: function (matches) {
+    var g = this.gems;
+    var m = matches;
+
+    // // Поиск 4inRow и 5inRow
+    // for (var i = 0; i < m.length; i++){
+    //   // for (var j = 0; j < m[i].length; j++){
+    //     // if (m[i].length == 3){
+
+    //     // } else if (m[i].length == 4){
+    //     //   console.log('4 in row');
+    //     //   break;
+    //     // } else if (m[i].length == 5){
+    //     //   console.log('5 in row');
+    //     //   break;
+    //     // }
+    //     // console.log(m[i][j].row, m[i][j].col, m[i].length);
+    //   // }
+    // }
+    // console.log('\n')
+
+    // var row = 0;
+    // var col = 0;
+    // var type;
+    for (var i = 0; i < this.rows - 2; i++){
+      for (var j = 0; j < this.cols - 2; j++){    
+        
+        // Поиск L-фигур
+        if (this.matchSpecialTilePattern(i, j, [[2,0]], [[2,2],[2,1],[1,0],[0,0]])){
+          console.log('L normal');
+        } 
+
+        if (this.matchSpecialTilePattern(i, j, [[2,2]], [[2,1],[2,0],[1,2],[0,2]])){
+          console.log('L flip x')
+        }
+
+        if (this.matchSpecialTilePattern(i, j, [[0,2]], [[2,2],[1,2],[0,1],[0,0]])){
+          console.log('L flip x & y')
+        } 
+
+        if (this.matchSpecialTilePattern(i, j, [[0,0]], [[2,0],[1,0],[0,2],[0,1]])){
+          console.log('L flip y')
+        }
+
+
+        // Поиск T-фигур
+        if (this.matchSpecialTilePattern(i, j, [[0,1]], [[0,0],[0,2],[1,1],[2,1]])){
+          console.log('T normal')
+        } 
+
+        if (this.matchSpecialTilePattern(i, j, [[2,1]], [[2,0],[2,2],[1,1],[0,1]])){
+          console.log('T flip y')
+        }
+
+        if (this.matchSpecialTilePattern(i, j, [[1,0]], [[1,2],[1,1],[0,0],[2,0]])){
+          console.log('T rotate left')
+        } 
+
+        if (this.matchSpecialTilePattern(i, j, [[1,2]], [[2,2],[0,2],[1,1],[1,0]])){
+          console.log('T rotate right')
+        }
+
+      }
+    }
+  },
+
+
+matchSpecialTilePattern: function (row, col, doubled, single) {
+  // console.log('matchSpecialTilePattern')
+  var g = this.gems;
+  for (var i = 0; i < single.length; i++){
+    var rS = row + single[i][0];
+    var cS = col + single[i][1];
+    var rD = row + doubled[0][0];
+    var cD = col + doubled[0][1];
+    // console.log(g[r][c].row, g[r][c].col);
+    
+    if (g[rD][cD].fill == g[rS][cS].fill){
+      // console.log('good',g[rS][cS].row, g[rS][cS].col)
+      continue;
+    } 
+    else {
+      // console.log('bad',g[rS][cS].row, g[rS][cS].col)
+      return false;
+    }
+
+  }
+
+  return true;
+},
+
+createSpecialTile: function () {
+
+},
+
+createBomb: function () {
+
+},
+
+createBombVertical: function () {
+
+},
+
+createBombHorizontal: function () {
+
+},
+
+createBombColored: function () {
+
+},
+
 
   lookForPossibles: function(){
-    console.log('lookForPossibles');
+    // console.log('lookForPossibles');
 
     for(var row = 0; row < this.cols; row++){
       for(var col = 0; col < this.rows; col++){
@@ -467,7 +607,6 @@ Board.prototype = {
 
         // воможна горизонтальная, две подряд 
         if (this.matchPattern(row, col, [[1,0]], [[-2,0],[-1,-1],[-1,1],[2,-1],[2,1],[3,0]])) {
-          console.log('match1')
           return true;
         }
         
