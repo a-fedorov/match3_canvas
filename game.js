@@ -1,11 +1,13 @@
 
 function Game(canvas) {
   this.board = new Board(canvas);
+  console.log('create');
 }
 
 Game.prototype = {
   start: function (mode) {
     this.board.spawn();
+    this.board.setGameMode(mode);
 
     if (mode == 'normal'){
       this.startNormalMode();
@@ -20,7 +22,9 @@ Game.prototype = {
 
 
   startNormalMode: function(){
-    // this.board.setLevelPoints();
+    var level = 1;
+    updateLevelIndicator(0);
+    this.board.setLevelPoints(level);
   },
 
   startTimeMode: function () {
