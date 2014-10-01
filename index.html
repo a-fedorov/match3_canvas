@@ -18,6 +18,15 @@
 			</ul>
 		</div>
 
+		<div class="gameModePage">
+			<div class="header">Game mode</div>
+			<ul>
+				<li class="mode" id="normal"><a href="#">Normal</a></li>
+				<li class="mode" id="time"><a href="#">Time Trial</a></li>
+				<li class="mode" id="endless"><a href="#">Endless</a></li>
+			</ul>
+		</div>
+
 		<div class="gamePage">
 			<div class="topPanel">
 				<p class="score" id="score">Score: 0</p>
@@ -28,14 +37,17 @@
 
 			<div class="bottomPanel">
 				<div class="time">
-					<div class="indicator">
-					</div>
+					<div class="indicator"></div>
+				</div>
+
+				<div class="levelProgress">
+					<div class="progress"></div>
 				</div>
 			</div>
 		</div>
 
 		<div class="gameOverPage">
-			
+			<!-- <p class="exit"><a href="#">Back</a></p> -->
 		</div>
 	</div>
 	
@@ -43,6 +55,8 @@
 	<script src="gremlins.min.js"></script>
 
 	<script src="ui.js"></script>
+	<script src="gem.js"></script>
+	<script src="board.js"></script>
 	<script src="game.js"></script>
 </body>
 </html>
