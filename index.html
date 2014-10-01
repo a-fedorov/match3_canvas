@@ -10,53 +10,69 @@
 <body>
 	<div class="gameContainer">
 
-		<div class="menuPage">
+		<div id="menuPage">
 			<ul class="menu">
-				<li class="item start"><a href="#">Start</a></li>
-				<li class="item options"><a href="#">Options</a></li>
-				<li class="item highscore"><a href="#">Highscore</a></li>
+				<li class="item" id="start"><a href="#">Start</a></li>
+				<li class="item" id="options"><a href="#">Options</a></li>
+				<li class="item" id="highscore"><a href="#">Highscore</a></li>
 			</ul>
 		</div>
 
-		<div class="gameModePage">
+		<div id="gameModePage">
 			<div class="header">Game mode</div>
+			<p class="exit" id="backToMainMenu"><a href="#">Back</a></p>
 			<ul>
 				<li class="mode" id="normal"><a href="#">Normal</a></li>
 				<li class="mode" id="time"><a href="#">Time Trial</a></li>
 				<li class="mode" id="endless"><a href="#">Endless</a></li>
 			</ul>
+
 		</div>
 
-		<div class="gamePage">
-			<div class="topPanel">
+		<div id="gamePage">
+			<div class="topPanel" id="topPanel">
 				<p class="score" id="score">Score: 0</p>
-				<p class="exit"><a href="#">Back</a></p>
+				<p class="exit" id="backToGameMode"><a href="#">Back</a></p>
 			</div>
 			
 			<canvas id="board" width="725" height="725"></canvas>
 
-			<div class="bottomPanel">
-				<div class="time">
-					<div class="indicator"></div>
+			<div class="bottomPanel" id="bottomPanel">
+				<div class="timeProgress" id="timeProgress">
+					<div class="indicator" id="timeIndicator"></div>
 				</div>
 
-				<div class="levelProgress">
-					<div class="progress"></div>
+				<div class="levelProgress" id="levelProgress">
+					<div class="indicator" id="levelIndicator"></div>
 				</div>
 			</div>
 		</div>
 
-		<div class="gameOverPage">
-			<!-- <p class="exit"><a href="#">Back</a></p> -->
+		<div id="gameOverPage">
+			<p class="text">Game Over</p>
+			<div class="buttons">
+				<a href="#" class="again">Play Again</a>
+				<a href="#" class="return">Menu</a>
+			</div>
 		</div>
+		
+		<div id="nextLevelPage">
+			<p class="text">Level Up!</p>
+			<div class="buttons">
+				<a href="#" class="again2">Play Again</a>
+				<a href="#" class="nextLevel">Next Level</a>
+			</div>
+		</div>
+		
 	</div>
 	
 	<script src="js/libs/tweenjs.js"></script>
+
 	<script src="js/libs/gremlins.min.js"></script>
 
-	<script src="ui.js"></script>
+	<script src="game.js"></script>
 	<script src="gem.js"></script>
 	<script src="board.js"></script>
-	<script src="game.js"></script>
+	<script src="ui.js"></script>
 </body>
 </html>
