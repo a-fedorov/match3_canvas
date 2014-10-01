@@ -2,28 +2,25 @@ var ui = {
   init: function () {
     this.menuPage.startBtn.addEvent();
     this.menuPage.optionsBtn.addEvent();
+    
+    this.gameModePage.normalMode.addEvent();
+    this.gameModePage.timeMode.addEvent();
+    this.gameModePage.endlessMode.addEvent();
+
     this.gamePage.topPanel.backBtn.addEvent();
   },
 
   menuPage: {
     element: document.querySelector('.menuPage'),
-
-    show: function () {
-      ui.showElement(this.element);
-    },
-
-    hide: function () {
-      ui.hideElement(this.element);
-    },
+    show: function () { ui.showElement(this.element); },
+    hide: function () { ui.hideElement(this.element); },
 
     startBtn: {
       element: document.querySelector('.start'),
       addEvent: function () {
         ui.addEvent(this.element, 'click', function(){
-          ui.gamePage.show();
+          ui.gameModePage.show();
           ui.menuPage.hide();
-
-          startGame();
         });
       }
     },
@@ -39,16 +36,60 @@ var ui = {
     
   },
 
+  gameModePage: {
+    element: document.querySelector('.gameModePage'),
+
+    show: function () { ui.showElement(this.element); },
+    hide: function () { ui.hideElement(this.element); },
+
+    normalMode: {
+      element: document.getElementById('normal'),
+      addEvent: function () {
+        ui.addEvent(this.element, 'click', function(){
+          ui.gamePage.show();
+          ui.gameModePage.hide();
+
+          ui.gamePage.bottomPanel.timer.hide();
+          ui.gamePage.bottomPanel.levelProgress.show();
+          startGame('normal');
+        })
+      },
+    },
+
+    timeMode: {
+      element: document.getElementById('time'),
+      addEvent: function () {
+        ui.addEvent(this.element, 'click', function(){
+          ui.gamePage.show();
+          ui.gameModePage.hide();
+
+          ui.gamePage.bottomPanel.timer.show();
+          ui.gamePage.bottomPanel.levelProgress.hide();
+          startGame('time');
+        })
+      }
+    },
+
+    endlessMode: {
+      element: document.getElementById('endless'),
+      addEvent: function () {
+        ui.addEvent(this.element, 'click', function(){
+          ui.gameModePage.hide();
+          ui.gamePage.show();
+          
+          ui.gamePage.bottomPanel.timer.hide();
+          ui.gamePage.bottomPanel.levelProgress.hide();
+          startGame('endless');
+        })
+      }      
+    }
+  },
+
   gamePage: {
     element: document.querySelector('.gamePage'),
     
-    show: function(){
-      ui.showElement(this.element);
-    },
-
-    hide: function(){
-      ui.hideElement(this.element);
-    },
+    show: function(){ ui.showElement(this.element); },
+    hide: function(){ ui.hideElement(this.element); },
 
     canvas: {
       element: document.getElementById('board'),
@@ -59,12 +100,8 @@ var ui = {
 
       scoreLabel: {
         element: document.querySelector('.score'),
-        update: function(points){
-          this.element.innerHTML = 'Score: ' + points;
-        },
-        reset: function(){
-          this.element.innerHTML = 'Score: 0';
-        }
+        update: function(points){ this.element.innerHTML = 'Score: ' + points; },
+        reset: function(){ this.element.innerHTML = 'Score: 0'; }
       },
       
       backBtn: {
@@ -72,8 +109,7 @@ var ui = {
         addEvent: function () {
           ui.addEvent(this.element, 'click', function(){
             ui.gamePage.hide();
-            ui.menuPage.show();
-
+            ui.gameModePage.show();
             ui.gamePage.topPanel.scoreLabel.reset();
           })
         }
@@ -82,11 +118,24 @@ var ui = {
 
     bottomPanel: {
       element: document.querySelector('.bottomPanel'),
+  
+      show: function() { ui.showElement(this.element); },
+      hide: function() { ui.hideElement(this.element); },
+
       timer: {
         element: document.querySelector('.indicator'),
-        update: function (percent) {
-          this.element.style.width = percent + '%';
-        },
+        container: document.querySelector('.time'),
+        show: function() { ui.showElement(this.container); },
+        hide: function() { ui.hideElement(this.container); },
+        update: function(percent) { this.element.style.width = percent + '%'; },
+        reset: function() { this.element.style.width = 100 + '%'}
+      },
+
+      levelProgress: {
+        element: document.querySelector('.progress'),
+        container: document.querySelector('.levelProgress'),
+        show: function() { ui.showElement(this.container); },
+        hide: function() { ui.hideElement(this.container); },
       }
     },
   },
@@ -104,16 +153,18 @@ var ui = {
   addEvent: function(el, eventType, eventFunction){
     el.addEventListener('click', eventFunction, true);
   },
-
 }
 
   
   var game;
   
-  function startGame(){
+  ui.init();
+
+
+  function startGame(mode){
 
     game = new Game(ui.gamePage.canvas.element)
-    game.start();
+    game.start(mode);
 
     // gremlinTest();
   }
@@ -123,5 +174,4 @@ var ui = {
     horde.unleash();
   }
 
-  ui.init();
   // window.onload = startGame;
