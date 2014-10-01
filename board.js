@@ -40,16 +40,16 @@ function Board(canvas){
   this.selectionWidth = 3;
 
   // Список режимов игры
-  this.gameMode = ['normal', 'time', 'endless'];
+  // this.gameMode;
 
   // Инидикация набранных очков
   this.score = 0;
-  this.scoreLabel = ui.gamePage.topPanel.scoreLabel;
-  this.level
+  // this.scoreLabel = ;
+  this.levelPointsBar = indicators.level;
   this.levelScore = [100, 150, 225, 337, 506];
 
   // Установки таймера для режима игры на время
-  this.timer = ui.gamePage.bottomPanel.timer;
+  this.timeBar = indicators.time;
   this.baseLevelTimer = 10000;  // 1000 мс = 1с
   this.startTime = 0;
   this.endTime = 0;
@@ -59,7 +59,7 @@ function Board(canvas){
   this.animDuration = {
     down: 700,
     fill: 600,
-    out:  1200,
+    // out:  1200,
     swap: 300,
   };
   
@@ -244,13 +244,34 @@ Board.prototype = {
   },
 
 
-  // Обновление количества набранных очков
-  updateScore: function (points) {
-  	this.score += points;
-    this.scoreLabel.update(this.score);
+  setGameMode: function (mode){
+    this.gameMode = mode;
   },
 
-  setLevelTimer: function (reset) {
+
+  // Обновление количества набранных очков
+  updateScore: function (points){
+  	this.score += points;
+    updateScoreLabel(this.score);
+    if (this.gameMode == 'normal'){
+      this.updateLevelProgress();
+    }
+  },
+
+  updateLevelProgress: function (){
+    var delta = this.score || 0;
+    var percent = (delta / this.levelScore[this.level]) * 100 || 0;
+
+    if (delta >= this.levelScore[this.level]){
+      updateLevelIndicator(100);
+      console.log('level complete');
+    } else {
+      updateLevelIndicator(percent);
+      console.log(percent);
+    }
+  },  
+
+  setLevelTimer: function (reset){
     if (reset){
       console.log('reset')
       clearTimeout(this.timeId);
@@ -263,17 +284,24 @@ Board.prototype = {
     var percent = (delta / this.endTime) * 100;
 
     if (delta < 0){
-      this.timer.update(0);
+      // this.timeBar.update(0);
+      updateTimeIndicator(0);
+      // ui.gameOverPage.show();
       console.log('game over');
     } else {
-      this.timer.update(percent);
+      // this.timeBar.update(percent);
+      updateTimeIndicator(percent);
       this.timeId = setTimeout(this.setLevelTimer.bind(this), 30);
     }
   },
 
+  setLevelPoints: function(level){
+    this.level = level;
+  },
+
 
   //  Поиск и удаление линий из одинаковых камней
-  findAndRemoveMatches: function() {
+  findAndRemoveMatches: function(){
     // console.log('findAndRemoveMatches')
     
     var self = this;
@@ -317,7 +345,7 @@ Board.prototype = {
   },
 
 
-  lookForMatches: function() {
+  lookForMatches: function(){
     var matchList = [];
 
     for(var row = 0; row < this.rows; row++){
