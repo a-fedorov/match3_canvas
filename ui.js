@@ -60,7 +60,8 @@ buttons.timeMode.addEventListener('click', function(){
 }, false);
 
 buttons.endlessMode.addEventListener('click', function(){
-  hide(panels.bottom);
+  hide(progress.time);
+  hide(progress.level);
   startGame('endless');
 }, false);
 
@@ -75,6 +76,14 @@ function updateLevelIndicator(percent){
 
 function updateScoreLabel(points){
   indicators.score.innerHTML = 'Score: ' + points;
+}
+
+function resetGameStats(){
+
+}
+
+function updateGameStats(el){
+  // elem.
 }
 
 
