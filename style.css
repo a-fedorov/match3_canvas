@@ -15,20 +15,24 @@ body {
 }
 
 .menuPage,
+.gameModePage,
 .gamePage {
+	position: absolute;
 	width: 100%;
 	height: 100%;
 }
 
+/* Главное меню игры */
+
 .menuPage {
-	position: absolute;
 	opacity: 1;
 	visibility: visible;
 	transition: all .2s ease-in;
 }
 
-.menuPage ul {
-	position: absolute;
+.menuPage ul,
+.gameModePage ul {
+	/*position: absolute;*/
 	width: 60%;
 	height: auto;
 	margin: auto;
@@ -42,7 +46,8 @@ body {
 
 }
 
-.menuPage ul li {
+.menuPage ul li,
+.gameModePage ul li{
 	display: block;
 	padding: 15px 20px;
 	
@@ -54,24 +59,51 @@ body {
 	text-transform: uppercase;
 }
 
-.menuPage ul li:last-child{
+.menuPage ul li:last-child,
+.gameModePage ul li:last-child {
 	border-bottom: 1px solid #777;
 }
 
 .menuPage ul li a, 
-.menuPage ul li a:visited{
+.menuPage ul li a:visited,
+.gameModePage ul li a, 
+.gameModePage ul li a:visited{
 	text-decoration: none;
 	color: #444;
 }
 
 
+/* Меню выбора уровней */
+
+.gameModePage {
+	opacity: 0;
+	visibility: hidden;
+	transition: all .5s ease-in;
+}
+
+.gameModePage .header {
+	margin-top: 20px;
+	text-align: center;
+	font-size: 36px;
+	font-family: sans-serif;
+	text-transform: uppercase;
+
+}
+
+
+.gameModePage ul li {
+	font-size: 36px;
+}
+
+
+/* Игровое поле */
+
 .gamePage {
-	position: absolute;
 	text-align: center;
 
 	opacity: 0;
 	visibility: hidden;
-	transition: all .5s ease-out;
+	transition: all .5s ease-in;
 }
 
 .gamePage .topPanel {
@@ -101,27 +133,39 @@ body {
 	text-decoration: none;
 }
 
-.gamePage .bottomPanel .time {
+.gamePage .bottomPanel {
 	position: relative;
+}
+
+.gamePage .bottomPanel .time,
+.gamePage .bottomPanel .levelProgress {
+	position: absolute;
+	right: 0;
+	left: 0;
+	
 	width: 715px;
-	margin: 20px auto;
 	height: 24px;
+	margin: 30px auto;
+	
+	
 	background-color: #ddd;
 	border-top: 1px solid #bbb;
 	border-bottom: 1px solid #bbb;
 }
 
-.gamePage .bottomPanel .indicator {
+.gamePage .bottomPanel .indicator{
 	position: absolute;
 	width: 100%;
 	height: 24px;
-	/*margin-top: 1px;*/
-
 	background-color: #bbb;
 
 }
 
-
-.gameOverPage {
-
+.gamePage .bottomPanel .progress {
+	position: absolute;
+	width: 0%;
+	height: 24px;
+	background-color: #bbb;
 }
+
+
