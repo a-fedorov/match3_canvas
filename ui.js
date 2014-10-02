@@ -87,15 +87,25 @@ function updateGameStats(el){
 }
 
 
-var canvas = document.getElementById('board');
-var game = new Game(canvas);
+// var canvas = document.getElementById('board');
+// var game = new Game(canvas);
+// var game;
 
 function startGame(mode){
+var canvas = document.getElementById('board');
+game = new Game(canvas);
+
   show(screens.gamePage);
   hide(screens.gameModePage);
 
   game.start(mode);
-}
+  // gremlinTest();
+  }
+
+  function gremlinTest(){
+    var horde = gremlins.createHorde().gremlin(gremlins.species.clicker().clickTypes(['click'])); 
+    horde.unleash();
+  }
 
 function show(el){
   el.style.opacity = 1;
@@ -106,3 +116,6 @@ function hide(el){
   el.style.opacity = 0;
   el.style.visibility = 'hidden';
 }
+
+
+window.onload = startGame('endless');
