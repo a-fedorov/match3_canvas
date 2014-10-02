@@ -39,6 +39,12 @@ Game.prototype = {
     requestAnimationFrame(this.update.bind(this, time));
 
     TWEEN.update();
+
+    // this.board.removeGems();
+    // if (this.board.isRemoved){
+      // console.log('true')
+      // this.board.affectAbove();
+    // }
     this.board.draw();
   },
 
