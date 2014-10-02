@@ -55,13 +55,17 @@ function Board(canvas){
   this.endTime = 0;
   this.timeId = 0;
 
+  this.animation = [];
   // Длительность анимаций 
   this.animDuration = {
     down: 700,
     fill: 600,
-    // out:  1200,
-    swap: 300,
+    // out:  3200,
+    swap: 250,
   };
+
+
+  this.isRemoved = false;
   
   // This complicates things a little but but fixes mouse co-ordinate problems
   // when there's a border or padding. See getMouse for more detail
@@ -83,7 +87,18 @@ function Board(canvas){
 
   // Убрать возможность выделять что либо на канвасе
   canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
-  canvas.addEventListener('click', function(e) { self.selectGem(e); }, true );
+  // canvas.addEventListener('click', function(e) { self.selectGem(e); }, true );
+
+  this.isDrag = false;
+  this.startDragPos = {x: 0, y: 0};
+  this.finishDragPos = {x: 0, y: 0}
+  this.dragDistance = this.gemSize / 3;
+  this.dragPrevSel;
+  this.dragCurSel;
+
+  canvas.addEventListener('mousedown', function(e){ self.swapOnDragBegin(e) }, false);
+  canvas.addEventListener('mousemove', function(e){ self.swapOnDragUpdate(e); }, false);
+  canvas.addEventListener('mouseup', function(e){ self.swapOnDragComplete(e) }, false);
 }
 
 
@@ -115,6 +130,61 @@ Board.prototype = {
         ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
       }
     }
+  },
+
+  swapOnDragBegin: function(e){
+    this.isDrag = true;
+    this.startDragPos = {x: e.layerX, y: e.layerY};
+    var gem = this.getGem(e);
+    if (gem) this.dragPrevSel = gem;
+  },
+
+  swapOnDragUpdate: function(e){
+    if (this.isDrag){
+      this.finishDragPos = {x: e.layerX, y: e.layerY};
+      var distanceX = this.finishDragPos.x - this.startDragPos.x;
+      var distanceY = this.finishDragPos.y - this.startDragPos.y;
+      var prevSel = this.dragPrevSel;
+      var gem;
+
+      if (prevSel){
+        if (distanceX >= this.dragDistance && (prevSel.col + 1 < this.cols)){
+          gem = this.gems[prevSel.row][prevSel.col + 1];
+        } else if (distanceX <= -this.dragDistance && (prevSel.col - 1 < this.cols)){
+          gem = this.gems[prevSel.row][prevSel.col - 1];
+        } else if (distanceY >= this.dragDistance && (prevSel.row + 1 < this.rows)){
+           gem = this.gems[prevSel.row + 1][prevSel.col];
+        } else if (distanceY <= -this.dragDistance && (prevSel.row - 1 >= 0)){
+          gem = this.gems[prevSel.row - 1][prevSel.col];
+        }
+      }
+
+      if (gem) this.dragCurSel = gem;
+
+      var ans = this.checkNeibours(this.dragPrevSel, this.dragCurSel);
+      if (ans == 'neibours'){
+        this.swapGems(this.dragPrevSel, this.dragCurSel);
+
+        // Если передвинутые камни не создают линию - поменять их местами обратно
+        var matches = this.lookForMatches();
+        if (matches.length == 0){ 
+          this.swapGems(this.dragPrevSel, this.dragCurSel, true); 
+        }
+        this.isDrag = false;
+      } else if (ans == 'same'){
+        this.dragPrevSel = undefined;
+        this.dragCurSel = undefined;
+        this.isDrag = false;
+      }
+    }
+  },
+
+  swapOnDragComplete: function(e){
+    this.isDrag = false;
+    this.startDragPos = {x: 0, y: 0};
+    this.finishDragPos = {x: 0, y: 0};
+    this.dragPrevSel = undefined;
+    this.dragCurSel = undefined;
   },
 
 
@@ -149,6 +219,16 @@ Board.prototype = {
     // }
   },
 
+  checkNeibours: function(g1, g2){
+    if (g1 == undefined || g2 == undefined) return 'error';
+    if (g1.row == g2.row && g1.col == g2.col){ 
+      return 'same';
+    } else if (Math.abs(g1.col - g2.col) == 1 && g1.row == g2.row ||
+               Math.abs(g1.row - g2.row) == 1 && g1.col == g2.col){
+      return 'neibours';
+    }
+  },
+
 
   addGem: function(gem, i, j) {
     gem.row = i;
@@ -173,21 +253,23 @@ Board.prototype = {
             
             // Если выбран тот же камень - снять выделение
             // Иначе проверить не являются ли выбранные камни соседними
-            if (prevSel.row == curSel.row && prevSel.col == curSel.col){
+            var isSwapped = false;
+            var ans = this.checkNeibours(prevSel, curSel);
+
+            if (ans == 'neibours'){
+              this.swapGems(prevSel, curSel);
               this.selection = [];
-            } else if (Math.abs(prevSel.col - curSel.col) == 1 && prevSel.row == curSel.row || 
-                       Math.abs(prevSel.row - curSel.row) == 1 && prevSel.col == curSel.col) {
 
-	            this.swapGems(prevSel, curSel);
-
-	            // Если передвинутые камни не создают линию - поменять их местами обратно
+              // Если передвинутые камни не создают линию - поменять их местами обратно
               var matches = this.lookForMatches();
-              if (matches.length == 0){
-                this.swapGems(prevSel, curSel, true)
+              if (matches.length == 0){ 
+                this.swapGems(prevSel, curSel, true); 
               }
-
+            } else if (ans == 'same'){ 
               this.selection = [];
             }
+
+
 
             this.selection.shift();
           } 
@@ -198,6 +280,59 @@ Board.prototype = {
     }
   },
 
+  // selectGem: function(e) {
+  //   var mouse = this.getMouse(e);
+  //   var gems = this.gems;
+
+  //   for (var i = 0; i < this.rows; i++){
+  //     for (var j = 0; j < this.cols; j++){
+  //       if (gems[i][j] !== undefined && gems[i][j].contains(mouse.x, mouse.y)){
+
+  //         this.selection.push(gems[i][j]);
+
+  //         if (this.selection.length == 2){
+  //           var prevSel = this.selection[0];
+  //           var curSel = this.selection[1];
+            
+  //           // Если выбран тот же камень - снять выделение
+  //           // Иначе проверить не являются ли выбранные камни соседними
+  //           if (prevSel.row == curSel.row && prevSel.col == curSel.col){
+  //             this.selection = [];
+  //           } else if (Math.abs(prevSel.col - curSel.col) == 1 && prevSel.row == curSel.row || 
+  //                      Math.abs(prevSel.row - curSel.row) == 1 && prevSel.col == curSel.col) {
+
+  //             this.swapGems(prevSel, curSel);
+
+  //             // Если передвинутые камни не создают линию - поменять их местами обратно
+  //             var matches = this.lookForMatches();
+  //             if (matches.length == 0){
+  //               this.swapGems(prevSel, curSel, true)
+  //             }
+
+  //             this.selection = [];
+  //           }
+
+  //           this.selection.shift();
+  //         } 
+
+  //         return;
+  //       }
+  //     }
+  //   }
+  // },
+
+  getGem: function(e){
+    var mouse = this.getMouse(e)
+    for (var i = 0; i < this.rows; i++){
+      for (var j = 0; j < this.cols; j++){
+        if (this.gems[i][j].contains(mouse.x, mouse.y)){
+          return this.gems[i][j];
+        }
+      }
+    }
+  },
+
+
 
   getAllGems: function(){
     return this.gems;
@@ -206,6 +341,7 @@ Board.prototype = {
 
   //  Обмен местами двух камней
   swapGems: function(t1, t2, backFlag){
+    console.log('swap')
     var duration = this.animDuration.swap;
     var ease = TWEEN.Easing.Linear.None;
     var posX = this.gemPosX;
@@ -220,7 +356,6 @@ Board.prototype = {
       .to({x: posX[t1.col], y: posY[t1.row]}, this.animDuration.swap)
       .easing(TWEEN.Easing.Linear.None)
       .start();
-
 
     var gems = this.getAllGems();
     var props = ['x', 'y', 'row', 'col'];
@@ -300,6 +435,56 @@ Board.prototype = {
   },
 
 
+ /* //  Поиск и удаление линий из одинаковых камней
+  findAndRemoveMatches: function(){
+    // console.log('findAndRemoveMatches')
+    
+    var self = this;
+    var gems = this.getAllGems();
+    var matches = this.lookForMatches();
+    var tweenOut;
+    // var isRemove = false;
+
+    this.removedGems = [];
+    this.matchesGems = [];
+
+    this.findSpecialTiles(matches);
+
+    for (var i = 0; i < matches.length; i++){
+      var numPoints = matches[i].length;
+		  this.updateScore(numPoints);
+
+      for (var j = 0; j < matches[i].length; j++){
+        var m = matches[i][j];
+
+        if (gems[m.row][m.col]){
+          this.removedGems.push(gems[m.row][m.col]);
+          this.matchesGems.push(m);
+          // gems[m.row][m.col] = undefined;
+          // this.affectAbove(m);
+          // console.log(m)
+
+          // isRemove = true;
+        }
+      }
+    }
+
+    if (this.removedGems){
+      // this.removeGems(this.removedGems);
+
+    }
+
+    // if (isRemove){
+    //   this.refill();
+    // }
+
+    if(matches.length == 0){
+      if (!this.lookForPossibles()){
+        console.log('Game Over')
+      }
+    }
+  },*/
+
   //  Поиск и удаление линий из одинаковых камней
   findAndRemoveMatches: function(){
     // console.log('findAndRemoveMatches')
@@ -314,7 +499,7 @@ Board.prototype = {
 
     for (var i = 0; i < matches.length; i++){
       var numPoints = matches[i].length;
-		  this.updateScore(numPoints);
+      this.updateScore(numPoints);
 
       for (var j = 0; j < matches[i].length; j++){
         var m = matches[i][j];
@@ -343,6 +528,24 @@ Board.prototype = {
       }
     }
   },
+
+  // removeGems: function (){
+  //   var self = this;
+  //   if (this.removedGems instanceof Array && this.removedGems.length > 0){
+  //     this.removedGems.forEach(function(r){
+  //       r.y += 10;
+        
+  //       if (r.y > 1900){
+  //         // this.gems[r.row][r.col] = undefined;
+  //         r.y = 1900;
+  //         self.isRemoved = true;
+  //         self.removedGems = [];
+  //         // return true;
+  //       }
+  //     });
+  //   }
+  // },
+
 
 
   lookForMatches: function(){
@@ -408,7 +611,36 @@ Board.prototype = {
   },
 
 
-  affectAbove: function(gem) {
+  // affectAbove: function() {
+  //   // console.log('affectAbove');
+  //   var self = this;
+
+  //   this.matchesGems.forEach(function(gem){
+  //     for (var row = gem.row - 1; row >= 0; row--){
+  //       // if(self.gems[row][gem.col] !== undefined){
+  //   //       var yNew = this.gemPosY[row] + this.gemSize;
+  //       if(self.gems[row][gem.col] && self.gems[row][gem.col].y <= self.gemPosY[row]){
+  //         self.gems[row][gem.col].y += 5;
+  //         self.gems[row + 1][gem.col] = self.gems[row][gem.col];
+  //       //   console.log(self.gems[row][gem.col].y)
+  //       }
+        
+  //       // if (self.gems[row][gem.col].y > self.gemPosY[row] + self.gemSize){
+  //         // self.gems[row][gem.col].y = self.gemPosY[row];
+  //         // self.gems[row][gem.col].row += 1;
+  //         // self.gems[row][gem.col] = undefined;
+
+  //   // self.matchesGems.splice(row, 1);
+  //       // }
+  //     }
+  //   })
+
+
+  // },
+  // // },
+
+
+affectAbove: function(gem) {
     // console.log('affectAbove');
     
     var tweenDown;
@@ -418,7 +650,7 @@ Board.prototype = {
         var yNew = this.gemPosY[row] + this.gemSize;
 
         tweenDown = new TWEEN.Tween(this.gems[row][gem.col])
-          .to({y: yNew}, this.animDuration.down)
+          .to({y: yNew}, 500)
           .easing(TWEEN.Easing.Quintic.Out)
           .start();
 
@@ -428,14 +660,7 @@ Board.prototype = {
         this.gems[row][gem.col] = undefined;
       } 
     }
-
-    // if (tweenDown) {
-    //   tweenDown.onComplete(this.refill.bind(this));
-    // }
-
-    // return this;
   },
-
 
   refill: function(){
     // console.log('refill');
@@ -450,11 +675,11 @@ Board.prototype = {
       for(var col = 0; col < this.cols; col++){
         if(gems[row][col] == undefined){
           var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];            
-	        var gem = new Gem(this.gemPosX[col], -h, w, h, color);
+	        var gem = new Gem(this.gemPosX[col], -725, w, h, color);
           this.addGem(gem, row, col);
 
           tweenFill = new TWEEN.Tween(gem)
-            .to({y: this.gemPosY[row]}, this.animDuration.fill + row * 50 )
+            .to({y: this.gemPosY[row]}, 1000 - row * 100)
             .easing(TWEEN.Easing.Quintic.Out)
             .start();
         }
@@ -464,9 +689,6 @@ Board.prototype = {
     if (tweenFill){
       tweenFill.onComplete(this.findAndRemoveMatches.bind(this));
     }
-
-    // return this;
-
   },
 
   findSpecialTiles: function (matches) {
@@ -544,41 +766,37 @@ Board.prototype = {
       var cS = col + single[i][1];
       var rD = row + doubled[0][0];
       var cD = col + doubled[0][1];
-      // console.log(g[r][c].row, g[r][c].col);
       
       if (g[rD][cD].fill == g[rS][cS].fill){
-        // console.log('good',g[rS][cS].row, g[rS][cS].col)
         continue;
       } 
       else {
-        // console.log('bad',g[rS][cS].row, g[rS][cS].col)
         return false;
       }
-
     }
 
     return true;
   },
 
-  // createSpecialTile: function () {
+  createSpecialTile: function () {
 
-  // },
+  },
 
-  // createBomb: function () {
+  createBomb: function (row, col) {
 
-  // },
+  },
 
-  // createBombVertical: function () {
+  createBombVertical: function () {
 
-  // },
+  },
 
-  // createBombHorizontal: function () {
+  createBombHorizontal: function () {
 
-  // },
+  },
 
-  // createBombColored: function () {
+  createBombColored: function () {
 
-  // },
+  },
 
 
   lookForPossibles: function(){
