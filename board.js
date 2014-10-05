@@ -34,8 +34,11 @@ function Board(canvas){
     this.gemPosY[i] = this.offsetY + this.gemSizeSpaced * i;
   }
 
+  this.removedGems = [0,0,0,0,0,0,0,0];
+
+
   // Выделение текущего выбранного объекта
-  this.selection = [];
+  this.firstSelection;
   this.selectionColor = 'rgba(0,0,0,.8)';
   this.selectionWidth = 3;
 
@@ -64,8 +67,13 @@ function Board(canvas){
   };
 
   this.isRemoved = false;
+  this.isMoved = false;
+  this.isSwapped = false;
+  this.isDropped = false;
   
   var self = this;    
+
+
 
   this.isDrag = false;
   this.startDragPos = {x: 0, y: 0};
@@ -76,7 +84,6 @@ function Board(canvas){
 
   // Убрать возможность выделять что либо на канвасе
   canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
-  // canvas.addEventListener('click', function(e) { self.selectGem(e); }, true );
   canvas.addEventListener('mousedown', function(e){ self.swapOnDragBegin(e) }, false);
   canvas.addEventListener('mousemove', function(e){ self.swapOnDragUpdate(e); }, false);
   canvas.addEventListener('mouseup', function(e){ self.swapOnDragComplete(e) }, false);
@@ -105,27 +112,23 @@ Board.prototype = {
     for (var i = 0; i < this.rows; i++){
       for (var j = 0; j < this.cols; j++){
         if (gems[i][j] == undefined) continue;
-        if (gems[i][j].type == 'bomb'){
-          ctx.save();
-          ctx.globalAlpha = .5;
+        // if (gems[i][j].type == 'bomb'){
+        //   ctx.save();
+        //   ctx.globalAlpha = .5;
+        //   gems[i][j].draw(ctx);
+        //   ctx.restore();
+        // } else {
           gems[i][j].draw(ctx);
-          ctx.restore();
-        } else {
-          gems[i][j].draw(ctx);
-        }
+        // }
       }
     }
     
     // Отрисовка выделения вокруг выбранного камня
-    var length = this.selection.length;
-    if (length > 0) {
+    if (this.firstSelection) {
+      var sel = this.firstSelection;
       ctx.lineWidth = this.selectionWidth;
       ctx.strokeStyle = this.selectionColor;
-
-      for (var i = 0; i < length; i++){
-        var mySel = this.selection[i];
-        ctx.strokeRect(mySel.x,mySel.y,mySel.w,mySel.h);
-      }
+      ctx.strokeRect(sel.x, sel.y, sel.w, sel.h);
     }
   },
 
@@ -144,7 +147,7 @@ Board.prototype = {
       this.finishDragPos = {x: e.layerX, y: e.layerY};
       var distanceX = this.finishDragPos.x - this.startDragPos.x;
       var distanceY = this.finishDragPos.y - this.startDragPos.y;
-      var prevSel = this.selection[0];
+      var prevSel = this.firstSelection;
       var x = 0;
       var y = 0;
 
@@ -159,25 +162,14 @@ Board.prototype = {
           x = e.pageX;
           y = e.pageY + this.gemSize - this.dragDistance;
         } else if (distanceY <= -this.dragDistance && (prevSel.row - 1 >= 0)){
-          x =  e.pageX;
-          y =  e.pageY -this.gemSize + this.dragDistance;
+          x = e.pageX;
+          y = e.pageY -this.gemSize + this.dragDistance;
         }
       }
 
       if (x && y) {
         this.selectGem({pageX: x, pageY: y});
       };
-
-      var ans = this.checkNeibours(this.selection[0], this.selection[1]);
-      if (ans == 'neibours'){
-        this.swapGems(this.selection[0], this.selection[1]);
-
-        // Если передвинутые камни не создают линию - поменять их местами обратно
-        var matches = this.lookForMatches();
-        if (matches.length == 0){ 
-          this.swapGems(this.dragPrevSel, this.dragCurSel, true); 
-        }
-      }
     }
   },
 
@@ -204,28 +196,11 @@ Board.prototype = {
         // var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
         var color = this.gemColors[this.testTable[i][j]];
         var g = new Gem(this.gemPosX[j], this.gemPosY[i], this.gemSize, this.gemSize, color);
-        // console.log(color)
         this.addGem(g, i, j);
       }
     }
 
-
-    this.findAndRemoveMatches();
-    // Заполнять поле пока на нём не будет ни одной линии из камней
-    // var match = this.lookForMatches();
-    // if (match.length != 0){
-    //   this.spawn();
-    // }
-  },
-
-  checkNeibours: function(g1, g2){
-    if (g1 == undefined || g2 == undefined) return 'error';
-    if (g1.row == g2.row && g1.col == g2.col){ 
-      return 'same';
-    } else if (Math.abs(g1.col - g2.col) == 1 && g1.row == g2.row ||
-               Math.abs(g1.row - g2.row) == 1 && g1.col == g2.col){
-      return 'neibours';
-    }
+    // this.findAndRemoveMatches();
   },
 
 
@@ -240,40 +215,39 @@ Board.prototype = {
     var mouse = this.getMouse(e);
     var gems = this.gems;
 
+
     for (var i = 0; i < this.rows; i++){
       for (var j = 0; j < this.cols; j++){
-        if (gems[i][j] !== undefined && gems[i][j].contains(mouse.x, mouse.y) && gems[i][j].isReady){
+        if (gems[i][j] !== undefined && gems[i][j].contains(mouse.x, mouse.y)){
 
-          this.selection.push(gems[i][j]);
+          //  Первая фишка выбрана    
+          if (this.firstSelection == undefined){
+            this.firstSelection = gems[i][j];
 
-          if (this.selection.length == 2){
-          	var prevSel = this.selection[0];
-          	var curSel = this.selection[1];
-            
-            // Если выбран тот же камень - снять выделение
-            // Иначе проверить не являются ли выбранные камни соседними
-            var isSwapped = false;
-            var ans = this.checkNeibours(prevSel, curSel);
+          // Повторный клик на первой фишке    
+          } else if (this.firstSelection == gems[i][j]){
+            console.log(gems[i][j].row, gems[i][j].col)
+            this.firstSelection = undefined;
 
-            if (ans == 'neibours'){
-              this.swapGems(prevSel, curSel);
-              this.selection = [];
+          // Клик на второй фишке
+          } else {
 
-              // Если передвинутые камни не создают линию - поменять их местами обратно
-              var matches = this.lookForMatches();
-              if (matches.length == 0){ 
-                this.swapGems(prevSel, curSel, true); 
-              }
-            } else if (ans == 'same'){ 
-              console.log(prevSel.x, prevSel.y, prevSel.fill, prevSel.type, prevSel.isReady, prevSel.row, prevSel.col)
-              this.selection = [];
+            // Одинаковый ряд, проверяем соседство в колонке или
+            // Одинаковая колонка, проверяем соседство в ряду     
+            if ((this.firstSelection.row == gems[i][j].row) && (Math.abs(this.firstSelection.col - gems[i][j].col) == 1) ||
+                (this.firstSelection.col == gems[i][j].col) && (Math.abs(this.firstSelection.row - gems[i][j].row) == 1)) {
+              
+              console.log('neibours', i, j);
+              this.makeSwap(this.firstSelection, gems[i][j])
+              this.firstSelection = undefined;
+ 
+            // Нет соседства, скидываем выбор с первой фишки     
+            } else {
+              this.firstSelection = gems[i][j];
             }
-
-
-
-            this.selection.shift();
-          } 
-
+          }
+        
+          // Прервать цикл
           return;
         }
       }
@@ -285,44 +259,84 @@ Board.prototype = {
     return this.gems;
   },
 
+  makeSwap: function(gem1, gem2){
+    this.swapGems(gem1, gem2);
+
+    // Если передвинутые камни не создают линию - поменять их местами обратно
+    if (this.lookForMatches().length == 0){
+      this.swapGems(gem1, gem2);
+    } else {
+      this.isSwapped = true;
+    }
+  },
+
 
   //  Обмен местами двух камней
-  swapGems: function(t1, t2, backFlag){
+  swapGems: function(gem1, gem2){
     console.log('swap')
-    var duration = this.animDuration.swap;
-    var ease = TWEEN.Easing.Linear.None;
+
+    // Обменять у обоих камней указанные параметры
+    var tempRow = gem1.row;
+    var tempCol = gem1.col;
+    gem1.row = gem2.row;
+    gem1.col = gem2.col;
+    gem2.row = tempRow;
+    gem2.col = tempCol;
+
+    this.gems[gem1.row][gem1.col] = gem1;
+    this.gems[gem2.row][gem2.col] = gem2;
+  },
+
+  // Если какая-то фишка не на своем месте, двигаем ее чуть ближе   
+  // такое происходит в случае обмена, или падения фишки
+  moveGems: function (){
+    var gems = this.gems;
     var posX = this.gemPosX;
     var posY = this.gemPosY;
+    var step = 5;
+    this.isMoved = false;
 
-    var tweenGemOne = new TWEEN.Tween(t1)
-      .to({x: posX[t2.col], y: posY[t2.row]}, this.animDuration.swap)
-      .easing(TWEEN.Easing.Linear.None)
-      .start();
+    for (var i = 0; i < this.rows; i++){
+      for (var j = 0; j < this.cols; j++){
 
-    var tweenGemTwo = new TWEEN.Tween(t2)
-      .to({x: posX[t1.col], y: posY[t1.row]}, this.animDuration.swap)
-      .easing(TWEEN.Easing.Linear.None)
-      .start();
+        if(gems[i][j] !== undefined){
 
-    var gems = this.getAllGems();
-    var props = ['x', 'y', 'row', 'col'];
+          // смещаем вниз    
+          if(gems[i][j].y < posY[gems[i][j].row]){
+            gems[i][j].y += step;
+            this.isMoved = true;
 
-    props.forEach(function(p){
-      var tempProp = t1[p];
-      t1[p] = t2[p];
-      t2[p] = tempProp;
-    })
-
-    gems[t1.row][t1.col] = t1;
-    gems[t2.row][t2.col] = t2;
-
-        // Если линий не найдено вернуть фишки на их прежние места
-    if (backFlag == true){
-      tweenGemOne.repeat(1);
-      tweenGemTwo.repeat(1);
+          // смещаем вверх
+          } else if (gems[i][j].y > posY[gems[i][j].row]){
+            gems[i][j].y -= step;
+            this.isMoved = true;
+          
+          // смещаем вправо 
+          } else if (gems[i][j].x < posX[gems[i][j].col]){
+            gems[i][j].x += step;
+            this.isMoved = true;
+          
+          // смещаем влево
+          } else if (gems[i][j].x > posX[gems[i][j].col]){
+            gems[i][j].x -= step;
+            this.isMoved = true;
+          }
+        }
+      }
     }
 
-    tweenGemOne.onComplete(this.findAndRemoveMatches.bind(this));
+    // все падения завершены    
+    if (this.isDropped && !this.isMoved) {
+      this.isDropped = false;
+      this.findAndRemoveMatches();
+
+      this.removedGems = [0,0,0,0,0,0,0,0];
+ 
+    // все обмены завершены    
+    } else if (this.isSwapped && !this.isMoved) {
+      this.isSwapped = false;
+      this.findAndRemoveMatches();
+    }
   },
 
 
@@ -401,7 +415,7 @@ tweenFunction: function(gem, position, duration, easing){
 
   //  Поиск и удаление линий из одинаковых камней
   findAndRemoveMatches: function(){
-    // console.log('findAndRemoveMatches')
+    console.log('findAndRemoveMatches')
     
     var self = this;
     var gems = this.getAllGems();
@@ -420,33 +434,21 @@ tweenFunction: function(gem, position, duration, easing){
         var m = matches[i][j];
         if (m.type == 'bomb'){
           isBombExploded = this.bombExplosion(m.row, m.col);
-          if (isBombExploded){
-            this.affectAbove(m);
-            isRemove = true;
-          }
-        } else if (gems[m.row][m.col]){
-          // tweenOut = new TWEEN.Tween(gems[m.row][m.col])
-          // .to({y: -100}, self.animDuration.out)
-          // .easing(TWEEN.Easing.Linear.None)
-          // .start();
-
-          gems[m.row][m.col] = undefined;
-          this.affectAbove(m);
-          isRemove = true;
         }
 
-
+        if (gems[m.row][m.col]){
+          this.removedGems[m.col]++;
+          gems[m.row][m.col] = undefined;
+          this.affectAbove(m);
+        }
       }
     }
 
-    // if (specialGem){
-    //   this.createSpecialGem(specialGem)
-    // }
-
-    if (isRemove){
-      this.refill();
-      setTimeout(this.refill.bind(this, 700))
+    if (specialGem){
+      this.createSpecialGem(specialGem)
     }
+
+    this.refill();
 
     if(matches.length == 0){
       if (!this.lookForPossibles()){
@@ -521,64 +523,38 @@ tweenFunction: function(gem, position, duration, easing){
 
   affectAbove: function(gem) {
     // console.log('affectAbove');
-    var tweenDown;
-    var res = false;
-
+    var gems = this.gems;
     for (var row = gem.row - 1; row >= 0; row--){
-      if(this.gems[row][gem.col] !== undefined ){
-        var yNew = this.gemPosY[row] + this.gemSizeSpaced;
-        var tweenDown = new TWEEN.Tween(this.gems[row][gem.col])
-          .to({y: yNew}, 700)
-          .easing(TWEEN.Easing.Quintic.Out)
-          .start();
-
-          // tweenDown.onComplete(function(){
-          //   res = true;
-          // })
-
-        this.gems[row + 1][gem.col] = this.gems[row][gem.col];
-        this.gems[row][gem.col].row += 1;
-        this.gems[row][gem.col] = undefined;
+      if(gems[row][gem.col] !== undefined ){        
+        gems[row][gem.col].row++;
+        gems[row + 1][gem.col] = gems[row][gem.col];
+        gems[row][gem.col] = undefined;
       } 
     }
-
-
-    // if (tweenDown){
-    //   res = true
-    // }
-
-    return true;
-
   },
 
   refill: function(){
     // console.log('refill');
     var gems = this.getAllGems();
-    var notReady = [];
     var colorsLength = this.gemColors.length;
-    var tweenFill = [];
+
+    this.removedGems;
 
     for(var row = 0; row < this.rows; row++){
       for(var col = 0; col < this.cols; col++){
         if(gems[row][col] == undefined){
-
           var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];            
-	        var gem = new Gem(this.gemPosX[col], -this.gemSize * this.rows, this.gemSize, this.gemSize, color);
+	        var gem = new Gem(this.gemPosX[col], 0, this.gemSize, this.gemSize, color);
+          // gem.y -= this.gemSizeSpaced*(this.rows - row);
+          gem.y = -this.gemSizeSpaced - this.gemSizeSpaced * (this.removedGems[col]--);
+
+          // console.log(row)
           this.addGem(gem, row, col);
 
-          tweenFill = new TWEEN.Tween(gem)
-            .to({y: this.gemPosY[row]}, 1500 - row * 50)
-            .easing(TWEEN.Easing.Quintic.Out)
-            .start();
-
-               if (tweenFill){
-      tweenFill.onComplete(this.findAndRemoveMatches.bind(this));
-    }
+          this.isDropped = true;
         }
       }
-    }
-
- 
+    } 
   },
 
   findSpecialTiles: function (matches) {
@@ -696,8 +672,8 @@ tweenFunction: function(gem, position, duration, easing){
   createBomb: function (row, col, fill) {    
     console.log('bomb')
     // Заменить уровень прозрачности цвета на непрозрачный
-    // var fill = fill.slice(0, -3) + '1)';
-    var bomb = new Gem(this.gemPosX[col], this.gemPosY[row], this.gemSize, this.gemSize, fill, 'bomb');
+    var fill = fill.slice(0, -3) + '1)';
+    var bomb = new Gem(this.gemPosX[col]-90, this.gemPosY[row], this.gemSize, this.gemSize, fill, 'bomb');
     this.addGem(bomb, row, col);
   },
 
@@ -721,7 +697,7 @@ tweenFunction: function(gem, position, duration, easing){
       var c = col + aroundGems[i][1];
       this.gems[r][c] = undefined;
     }
-
+this.isDropped = false;
     return true;
   },
 
