@@ -1,5 +1,5 @@
 
-function Gem(x, y, w, h, fill) {
+function Gem(x, y, w, h, fill, type) {
   this.x = x || 0;
   this.y = y || 0;
   this.w = w || 1;
@@ -7,6 +7,7 @@ function Gem(x, y, w, h, fill) {
   this.row = 0;
   this.col = 0;
   this.fill = fill || '#AAAAAA';
+  this.type = type || 'normal';
 }
 
 Gem.prototype = {
