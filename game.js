@@ -45,6 +45,7 @@ Game.prototype = {
       // console.log('true')
       // this.board.affectAbove();
     // }
+    this.board.moveGems();
     this.board.draw();
   },
 
