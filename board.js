@@ -84,12 +84,12 @@ function Board(canvas){
   canvas.addEventListener('mouseup', function(e){ self.swapOnDragComplete(e) }, false);
 
   // Тестовое заполнение игрового поля
-  this.testTable = [[0,1,2,3,1,5,3,4], 
+  this.testTable = [[1,1,2,3,1,5,3,4], 
                     [0,2,3,4,1,1,3,2], 
-                    [0,0,0,2,3,3,2,4], 
+                    [0,2,3,2,3,3,2,4], 
                     [2,5,3,5,1,4,3,4],
-                    [4,2,5,3,5,4,4,4],
-                    [5,2,3,4,2,3,3,2],
+                    [0,2,5,3,5,4,4,4],
+                    [0,2,3,1,1,1,3,2],
                     [3,2,2,2,1,3,2,4],
                     [2,5,3,5,1,4,3,1]];
 }
@@ -107,8 +107,47 @@ Board.prototype = {
     for (var i = 0; i < this.rows; i++){
       for (var j = 0; j < this.cols; j++){
         if (gems[i][j] == undefined) continue;
+        
+        var g = gems[i][j];
+        var type = gems[i][j].type;
 
-        gems[i][j].draw(ctx);
+        g.draw(ctx);
+
+        // Добавить квадрат размером в центре камня для обычной бомбы
+        if (type == 'bomb'){
+          ctx.save();
+          ctx.lineWidth = 2;
+          ctx.strokeRect(g.x + g.w/4, g.y + g.h/4, g.w/2, g.h/2);
+          ctx.restore();
+        
+        // Добавить три горизонтальные полосы для горизонтальной бомбы
+        } else if(type == 'bombHoriz'){
+          ctx.save();
+          
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(g.x, g.y + g.h/3);
+          ctx.lineTo(g.x + g.w, g.y + g.h/3);
+          ctx.moveTo(g.x, g.y + g.h/2);
+          ctx.lineTo(g.x + g.w, g.y + g.h/2);
+          ctx.moveTo(g.x, g.y + g.h/3*2);
+          ctx.lineTo(g.x + g.w, g.y + g.h/3*2);
+          ctx.stroke();
+          ctx.restore();
+
+        // Добавить рамку из R,G,B цветов для цветной бомбы
+        } else if (type == 'bombColor'){
+          ctx.save();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgba(0,0,255,1)';  
+          ctx.strokeRect(g.x, g.y, g.w, g.h);
+          ctx.strokeStyle = 'rgba(255,0,0,1)';
+          ctx.strokeRect(g.x+2, g.y+2, g.w-4, g.h-4);
+          ctx.strokeStyle = 'rgba(0,255,0,1)';
+          ctx.strokeRect(g.x+4, g.y+4, g.w-8, g.h-8);
+          ctx.restore();
+
+        }
       }
     }
 
@@ -195,27 +234,27 @@ Board.prototype = {
     var isPlayable = false;
     
     // Цикл, пока не создадим играбельную сетку
-    while (!isPlayable){
+    // while (!isPlayable){
       // Добавляем фишки
       for (var i = 0; i < this.rows; i++){
         this.gems[i] = [];
         for (var j = 0; j < this.cols; j++){
-          var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
-          // var color = this.gemColors[this.testTable[i][j]];
+          // var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
+          var color = this.gemColors[this.testTable[i][j]];
           var g = new Gem(this.gemPosX[j], this.gemPosY[i], this.gemSize, this.gemSize, color);
           this.addGem(g, i, j);
         }
       }
 
       // Пробуем снова если на поле есть линии
-      if (this.lookForMatches().length != 0) continue;
+      // if (this.lookForMatches().length != 0) continue;
 
       // Пробуем снова если на поле нет ни одного хода
-      if (this.lookForPossibles() == false) continue;
+      // if (this.lookForPossibles() == false) continue;
 
       // Нет линий и есть ходы - прерываем цикл
       isPlayable = true;
-    }
+    // }
 
   },
 
@@ -241,7 +280,7 @@ Board.prototype = {
 
           // Повторный клик на первой фишке    
           } else if (this.firstSelection == gems[i][j]){
-            console.log(gems[i][j].row, gems[i][j].col, gems[i][j].y)
+            console.log(gems[i][j].row, gems[i][j].col, gems[i][j].type)
             this.firstSelection = undefined;
 
           // Клик на второй фишке
@@ -346,7 +385,10 @@ Board.prototype = {
       this.isDropped = false;
       this.findAndRemoveMatches();
 
-      this.removedInCols = [0,0,0,0,0,0,0,0];
+      // Обнулить количество удалённых камней для каждого столбца
+      for (var i = 0; i < this.cols; i++){
+        this.removedInCols[i] = 0;
+      }
  
     // все обмены завершены    
     } else if (this.isSwapped && !this.isMoved) {
@@ -429,8 +471,9 @@ Board.prototype = {
     var gems = this.getAllGems();
     var matches = this.lookForMatches();
     var isBombExploded = false;
+    var isAffected = false;
 
-    var specialGem = this.findSpecialTiles(matches);
+    var specialGem = this.findSpecialGems(matches);
 
 
     for (var i = 0; i < matches.length; i++){
@@ -440,7 +483,7 @@ Board.prototype = {
         var m = matches[i][j];
 
         if (m.type == 'bomb'){
-          // isBombExploded = this.bombExplosion(m.row, m.col);
+          isBombExploded = this.bombExplosion(m.row, m.col, m.type);
         }
         // Подсчитать количество удалённых камней в каждом столбце
         this.removedInCols[m.col]++;
@@ -449,15 +492,19 @@ Board.prototype = {
 
         // Переместить вышележещие камни вниз
         this.affectAbove(m);
+        isAffected = true;
       }
     }
 
-    // if (specialGem){
-    //   this.createSpecialGem(specialGem)
-    // }
+    if (specialGem){
+      this.createSpecialGem(specialGem);
+    }
+
 
     // Заполнить пустоты новыми камнями
-    this.refill();
+    if (isAffected){
+      this.refill();
+    }
 
     if(matches.length == 0){
       if (!this.lookForPossibles()){
@@ -565,80 +612,79 @@ Board.prototype = {
     } 
   },
 
-  findSpecialTiles: function (matches) {
+  findSpecialGems: function (matches) {
     var g = this.gems;
     var m = matches;
     var fill;
-    var type = '';
-    var r = 0;
-    var c = 0;
     var specialGems = [];
 
     // Поиск 4inRow и 5inRow
     for (var i = 0; i < m.length; i++){
       for (var j = 0; j < m[i].length; j++){
-        if (m[i].length == 3){
-          continue
-        } else if (m[i].length == 4){
+        if (m[i].length == 4){
           console.log('4 in row');
+          specialGems.push({row: m[i][j+3].row, col: m[i][j+3].col, type: 'bombHoriz', fill: m[i][j+3].fill});
           break;
         } else if (m[i].length == 5){
           console.log('5 in row');
+          specialGems.push({row: m[i][j+4].row, col: m[i][j+4].col, type: 'bombColor', fill: m[i][j+4].fill});
           break;
         }
       }
     }
 
+    // Поиск L и T фигур
     for (var row = 0; row < this.rows - 2; row++){
       for (var col = 0; col < this.cols - 2; col++){    
         fill = this.gems[row][col].fill;
+
         // Поиск L-фигур
-        if (this.matchSpecialTilePattern(row, col, [[2,0]], [[2,2],[2,1],[1,0],[0,0]])){
+        if (this.matchSpecialGemsPattern(row, col, [[2,0]], [[2,2],[2,1],[1,0],[0,0]])){
           console.log('L normal');
           specialGems.push({row: row + 2, col: col, type: 'bomb', fill: fill});
-        } 
-
-        if (this.matchSpecialTilePattern(row, col, [[2,2]], [[2,1],[2,0],[1,2],[0,2]])){
+       
+        } else if (this.matchSpecialGemsPattern(row, col, [[2,2]], [[2,1],[2,0],[1,2],[0,2]])){
           console.log('L flip x');
           specialGems.push({row: row + 2, col: col + 2, type: 'bomb', fill: fill});
-        }
-
-        if (this.matchSpecialTilePattern(row, col, [[0,2]], [[2,2],[1,2],[0,1],[0,0]])){
+      
+        } else if (this.matchSpecialGemsPattern(row, col, [[0,2]], [[2,2],[1,2],[0,1],[0,0]])){
           console.log('L flip x & y');
           specialGems.push({row: row, col: col + 2, type: 'bomb', fill: fill});
-        } 
-
-        if (this.matchSpecialTilePattern(row, col, [[0,0]], [[2,0],[1,0],[0,2],[0,1]])){
+      
+        } else if (this.matchSpecialGemsPattern(row, col, [[0,0]], [[2,0],[1,0],[0,2],[0,1]])){
           console.log('L flip y');
           specialGems.push({row: row, col: col, type: 'bomb', fill: fill});
+          
+          // Поиск T-фигур
+        } else {
+          if (this.matchSpecialGemsPattern(row, col, [[0,1]], [[0,0],[0,2],[1,1],[2,1]])){
+            console.log('T normal');
+            specialGems.push({row: row, col: col+1, type: 'bomb', fill: fill});
+       
+          } else if (this.matchSpecialGemsPattern(row, col, [[2,1]], [[2,0],[2,2],[1,1],[0,1]])){
+            specialGems.push({row: row+2, col: col+1, type: 'bomb', fill: fill});
+            console.log('T flip y')
+       
+          } else if (this.matchSpecialGemsPattern(row, col, [[1,0]], [[1,2],[1,1],[0,0],[2,0]])){
+            specialGems.push({row: row+1, col: col, type: 'bomb', fill: fill});
+            console.log('T rotate left')
+      
+          } else if (this.matchSpecialGemsPattern(row, col, [[1,2]], [[2,2],[0,2],[1,1],[1,0]])){
+            specialGems.push({row: row+1, col: col+2, type: 'bomb', fill: fill});
+            console.log('T rotate right')
+          }
+
         }
-
-        // // Поиск T-фигур
-        // if (this.matchSpecialTilePattern(row, col, [[0,1]], [[0,0],[0,2],[1,1],[2,1]])){
-        //   console.log('T normal')
-        // } 
-
-        // if (this.matchSpecialTilePattern(row, col, [[2,1]], [[2,0],[2,2],[1,1],[0,1]])){
-        //   console.log('T flip y')
-        // }
-
-        // if (this.matchSpecialTilePattern(row, col, [[1,0]], [[1,2],[1,1],[0,0],[2,0]])){
-        //   console.log('T rotate left')
-        // } 
-
-        // if (this.matchSpecialTilePattern(row, col, [[1,2]], [[2,2],[0,2],[1,1],[1,0]])){
-        //   console.log('T rotate right')
-        // }
       }
-
-      // console.log(specialGems)
     }
-      return specialGems;
+
+    // console.log(specialGems)
+    return specialGems;
   },
 
 
-  matchSpecialTilePattern: function (row, col, doubled, single) {
-    // console.log('matchSpecialTilePattern')
+  matchSpecialGemsPattern: function (row, col, doubled, single) {
+    // console.log('matchSpecialGemsPattern')
     var g = this.gems;
     for (var i = 0; i < single.length; i++){
       var rS = row + single[i][0];
@@ -660,9 +706,11 @@ Board.prototype = {
 
   createSpecialGem: function (specialGems) {
     if (!specialGems) return false;
+    // console.log(specialGems);
     
     var type, row, col, fill;
-    // console.log(specialGems);
+    var newRow;
+    var gem;
     for (var i = 0; i < specialGems.length; i++){
       type = specialGems[i].type;
       row = specialGems[i].row;
@@ -670,43 +718,48 @@ Board.prototype = {
       fill = specialGems[i].fill;
 
       if (type == 'bomb'){
-        this.createBomb(row, col, fill);
+        gem = new Gem(this.gemPosX[col], this.gemPosY[row], this.gemSize, this.gemSize, fill, 'bomb');
+        this.addGem(gem, row, col);
+
+      } else if (type == 'bombHoriz'){
+        gem = new Gem(this.gemPosX[col], this.gemPosY[row], this.gemSize, this.gemSize, fill, 'bombHoriz');
+        this.addGem(gem, row, col);
+
+      } else if (type == 'bombColor'){
+        gem = new Gem(this.gemPosX[col], this.gemPosY[row], this.gemSize, this.gemSize, fill, 'bombColor');
+        this.addGem(gem, row, col);
       }
+
+      this.isDropped = true;
     }
 
     return true;
   },
 
-  createBomb: function (row, col, fill) {    
-    console.log('bomb')
-    // Заменить уровень прозрачности цвета на непрозрачный
-    // var fill = fill.slice(0, -3) + '1)';
-    var bomb = new Gem(this.gemPosX[col], this.gemPosY[row], this.gemSize, this.gemSize, fill, 'bomb');
-    this.addGem(bomb, row, col);
-  },
 
-  createBombVertical: function () {
-
-  },
-
-  createBombHorizontal: function () {
-
-  },
-
-  createBombColored: function () {
-
-  },
-
-  bombExplosion: function(row, col){
-    var aroundGems = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1],[0,0]];
-    
-    for (var i = 0; i < aroundGems.length; i++){
-      var r = row + aroundGems[i][0];
-      var c = col + aroundGems[i][1];
-      this.gems[r][c] = undefined;
+  bombExplosion: function(row, col, type){
+    var gems = this.getAllGems();
+    var aroundGems = [];
+    if (type == 'bomb'){
+      aroundGems = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1],[0,0]];
+      
+      if (row == this.rows - 1){
+        aroundGems = [[0,-1],[0,1],[-1,-1],[-1,0],[-1,1],[0,0]];
+      }
+      
+      
+      for (var i = 0; i < aroundGems.length; i++){
+        var r = row + aroundGems[i][0];
+        var c = col + aroundGems[i][1];
+        gems[r][c] = undefined;
+      }
+      
+      this.isDropped = false;
+      return true;
+    } else if (type == 'bombHoriz'){
+      if (gems[row][col].fill == gems[row+1])
     }
-this.isDropped = false;
-    return true;
+
   },
 
 
