@@ -85,13 +85,13 @@ function Board(canvas){
 
   // Тестовое заполнение игрового поля
   this.testTable = [[1,1,2,3,1,5,3,4], 
-                    [0,2,3,4,1,1,3,2], 
+                    [0,2,4,4,1,1,3,2], 
                     [0,2,3,2,3,3,2,4], 
-                    [2,5,3,5,1,4,3,4],
-                    [0,2,5,3,5,4,4,4],
-                    [0,2,3,1,1,1,3,2],
-                    [3,2,2,2,1,3,2,4],
-                    [2,5,3,5,1,4,3,1]];
+                    [2,0,3,1,0,4,3,4],
+                    [0,2,5,3,5,4,4,5],
+                    [0,4,1,1,1,1,3,2],
+                    [3,0,2,2,1,3,2,4],
+                    [2,0,3,5,0,4,3,1]];
 }
 
 
@@ -482,7 +482,7 @@ Board.prototype = {
       this.updateScore(numPoints);
         var m = matches[i][j];
 
-        if (m.type == 'bomb'){
+        if (m.type == 'bomb' || m.type =='bombHoriz' || m.type == "bombColor"){
           isBombExploded = this.bombExplosion(m.row, m.col, m.type);
         }
         // Подсчитать количество удалённых камней в каждом столбце
@@ -737,29 +737,56 @@ Board.prototype = {
   },
 
 
-  bombExplosion: function(row, col, type){
+  bombExplosion: function(bombRow, bombCol, type){
     var gems = this.getAllGems();
-    var aroundGems = [];
+    
+    // Если бомба обычная - удалить 8 камней вокруг неё
     if (type == 'bomb'){
+      var aroundGems = [];
       aroundGems = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1],[0,0]];
       
-      if (row == this.rows - 1){
+      if (bombRow == this.rows - 1){
         aroundGems = [[0,-1],[0,1],[-1,-1],[-1,0],[-1,1],[0,0]];
       }
-      
-      
+            
       for (var i = 0; i < aroundGems.length; i++){
-        var r = row + aroundGems[i][0];
-        var c = col + aroundGems[i][1];
+        var r = bombRow + aroundGems[i][0];
+        var c = bombCol + aroundGems[i][1];
         gems[r][c] = undefined;
       }
-      
-      this.isDropped = false;
+
+      // this.isDropped = false;
       return true;
-    } else if (type == 'bombHoriz'){
-      if (gems[row][col].fill == gems[row+1])
     }
 
+    // Если бомба горизонтальная - удалить всю горизонтальную линию камней
+    if (type == 'bombHoriz'){
+      console.log('hodor')
+      for (var i = 0; i < this.cols; i++){
+        gems[bombRow][i] = undefined;
+      }
+      // this.isDropped = false;
+
+      return true;
+    }
+
+    // Если бомба цветная - удалить все камни того же цвета что и бомба
+    if (type == 'bombColor'){
+      for(var row = 0; row < this.rows; row++){
+        for(var col = 0; col < this.cols; col++){
+          if (row == bombRow && col == bombCol) continue;
+          if (gems[row][col] && gems[bombRow][bombCol].fill == gems[row][col].fill){
+            console.log(bombRow, bombCol, gems[bombRow][bombCol].fill, gems[row][col].fill);
+            this.gems[row][col] = undefined;
+          }
+        }
+      }
+
+      // this.isDropped = false;
+      return true;
+    }
+
+    return false;
   },
 
 
