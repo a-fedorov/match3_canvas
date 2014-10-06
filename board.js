@@ -498,7 +498,6 @@ Board.prototype = {
         // Если образовано линию с бомбой - взорвать бомбу
         if (m.type == 'bomb' || m.type =='bombHoriz' || m.type == "bombColor"){
           isBombExploded = this.bombExplosion(m.row, m.col, m.type);
-          // this.affectAbove(m);
 
         // Если бомбы нет - убрать текущий камень а камни над ним опустить вниз
         } else {
@@ -783,7 +782,7 @@ Board.prototype = {
           }
         }
       }
-      
+
       return true;
     }
 
