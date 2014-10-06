@@ -22,7 +22,7 @@ Game.prototype = {
 
 
   startNormalMode: function(){
-    var level = 1;
+    var level = 0;
     updateLevelIndicator(0);
     this.board.setLevelPoints(level);
   },
@@ -38,13 +38,8 @@ Game.prototype = {
   update: function(time) {
     requestAnimationFrame(this.update.bind(this, time));
 
-    TWEEN.update();
+    // TWEEN.update();
 
-    // this.board.removeGems();
-    // if (this.board.isRemoved){
-      // console.log('true')
-      // this.board.affectAbove();
-    // }
     this.board.moveGems();
     this.board.draw();
   },
