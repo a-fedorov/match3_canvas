@@ -13,29 +13,35 @@ function Board(canvas){
   this.offsetX = this.offsetY = 5; 
   
   this.gems = []; // все камни на игровом поле
-  this.gemSize = 85;
+  this.gemSize = 80;
   this.gemSizeSpaced = this.gemSize + this.offsetX;
 
   this.gemColors = [
-    'rgba(241, 196, 15,  .5)', /* yeloow */
-    'rgba(155, 89,  182, .5)', /* violet */
-    'rgba(46,  204, 113, .5)', /* green */
-    'rgba(52,  152, 219, .5)', /* blue */
-    'rgba(52,  73,  94,  .5)', /* gray */
-    'rgba(231, 76,  60,  .5)', /* red */
+    'rgba(241, 196, 15,  .7)', /* yeloow */
+    'rgba(155, 89,  182, .7)', /* violet */
+    'rgba(46,  204, 113, .7)', /* green */
+    'rgba(52,  152, 219, .7)', /* blue */
+    'rgba(52,  73,  94,  .6)', /* gray */
+    'rgba(231, 76,  60,  .7)', /* red */
   ];
 
   this.specialGemsType = ['bomb', 'bombVertical', 'bombHorizontal', 'bombColored'];
 
-  // Расчёт координат для каждого элемента на поле
+  // Расчёт координат для каждого камня на поле
   this.gemPosX = this.gemPosY = [];
   for (var i = 0; i < this.cols; i++){
     this.gemPosX[i] = this.offsetX + this.gemSizeSpaced * i;
     this.gemPosY[i] = this.offsetY + this.gemSizeSpaced * i;
   }
 
-  this.removedGems = [0,0,0,0,0,0,0,0];
+  // Количество удалённых камней в каждом столбце
+  this.removedInCols = [];
+  for (var i = 0; i < this.cols; i++){
+    this.removedInCols[i] = 0;
+  }
 
+  this.removedGems = [];
+  this.removedAlpha = 1;
 
   // Выделение текущего выбранного объекта
   this.firstSelection;
@@ -57,38 +63,27 @@ function Board(canvas){
   this.endTime = 0;
   this.timeId = 0;
 
-  this.animation = [];
-  // Длительность анимаций 
-  this.animDuration = {
-    down: 700,
-    fill: 600,
-    out:  1100,
-    swap: 300,
-  };
-
   this.isRemoved = false;
   this.isMoved = false;
   this.isSwapped = false;
   this.isDropped = false;
-  
-  var self = this;    
-
 
 
   this.isDrag = false;
   this.startDragPos = {x: 0, y: 0};
   this.finishDragPos = {x: 0, y: 0}
-  this.dragDistance = this.gemSize / 3;
-  this.dragPrevSel;
-  this.dragCurSel;
+  this.dragDistance = Math.floor(this.gemSize / 3);
 
+  var self = this;    
   // Убрать возможность выделять что либо на канвасе
   canvas.addEventListener('selectstart', function(e) { e.preventDefault(); return false; }, false); 
+
+  // Обмен фишек местами с помощью свайпов мышкой
   canvas.addEventListener('mousedown', function(e){ self.swapOnDragBegin(e) }, false);
   canvas.addEventListener('mousemove', function(e){ self.swapOnDragUpdate(e); }, false);
   canvas.addEventListener('mouseup', function(e){ self.swapOnDragComplete(e) }, false);
 
-
+  // Тестовое заполнение игрового поля
   this.testTable = [[0,1,2,3,1,5,3,4], 
                     [0,2,3,4,1,1,3,2], 
                     [0,0,0,2,3,3,2,4], 
@@ -112,17 +107,12 @@ Board.prototype = {
     for (var i = 0; i < this.rows; i++){
       for (var j = 0; j < this.cols; j++){
         if (gems[i][j] == undefined) continue;
-        // if (gems[i][j].type == 'bomb'){
-        //   ctx.save();
-        //   ctx.globalAlpha = .5;
-        //   gems[i][j].draw(ctx);
-        //   ctx.restore();
-        // } else {
-          gems[i][j].draw(ctx);
-        // }
+
+        gems[i][j].draw(ctx);
       }
     }
-    
+
+
     // Отрисовка выделения вокруг выбранного камня
     if (this.firstSelection) {
       var sel = this.firstSelection;
@@ -137,6 +127,7 @@ Board.prototype = {
     this.startDragPos = {x: e.layerX, y: e.layerY};
     var pos = {pageX: 0, pageY: 0};
     if (pos){
+      // Выбрать первыю фишку для обмена
       this.selectGem(e);
     }
 
@@ -152,21 +143,29 @@ Board.prototype = {
       var y = 0;
 
       if (prevSel){
+        // Если свайп вправо - выбрать фишку справа
         if (distanceX >= this.dragDistance && (prevSel.col + 1 < this.cols)){
           x = e.pageX + this.gemSize - this.dragDistance;
           y = e.pageY;
+
+        // Если свайп влево - выбрать фишку слева
         } else if (distanceX <= -this.dragDistance && (prevSel.col - 1 >= 0)){
           x = e.pageX - this.gemSize + this.dragDistance;
           y = e.pageY;
+
+        // Если свайп вниз - выбрать фишку снизу
         } else if (distanceY >= this.dragDistance && (prevSel.row + 1 < this.rows)){
           x = e.pageX;
           y = e.pageY + this.gemSize - this.dragDistance;
+
+        // Если свайп вверх - выбрать фишку сверху
         } else if (distanceY <= -this.dragDistance && (prevSel.row - 1 >= 0)){
           x = e.pageX;
-          y = e.pageY -this.gemSize + this.dragDistance;
+          y = e.pageY - this.gemSize + this.dragDistance;
         }
       }
 
+      // Выбрать вторую фишку для обмена
       if (x && y) {
         this.selectGem({pageX: x, pageY: y});
       };
@@ -175,7 +174,7 @@ Board.prototype = {
 
   swapOnDragComplete: function(e){
     this.isDrag = false;
-    this.startDragPos = {x: 0, y: 0};
+    this.startDragPos  = {x: 0, y: 0};
     this.finishDragPos = {x: 0, y: 0};
   },
 
@@ -185,22 +184,39 @@ Board.prototype = {
     this.ctx.clearRect(0, 0, this.width, this.height);
   },
 
+  removeGems: function(){
+
+  },
+
   // Заполнение поля камнями
   spawn: function(){
     console.log('spawn');
     var colorsLength = this.gemColors.length;
-
-    for (var i = 0; i < this.rows; i++){
-      this.gems[i] = [];
-      for (var j = 0; j < this.cols; j++){
-        // var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
-        var color = this.gemColors[this.testTable[i][j]];
-        var g = new Gem(this.gemPosX[j], this.gemPosY[i], this.gemSize, this.gemSize, color);
-        this.addGem(g, i, j);
+    var isPlayable = false;
+    
+    // Цикл, пока не создадим играбельную сетку
+    while (!isPlayable){
+      // Добавляем фишки
+      for (var i = 0; i < this.rows; i++){
+        this.gems[i] = [];
+        for (var j = 0; j < this.cols; j++){
+          var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
+          // var color = this.gemColors[this.testTable[i][j]];
+          var g = new Gem(this.gemPosX[j], this.gemPosY[i], this.gemSize, this.gemSize, color);
+          this.addGem(g, i, j);
+        }
       }
+
+      // Пробуем снова если на поле есть линии
+      if (this.lookForMatches().length != 0) continue;
+
+      // Пробуем снова если на поле нет ни одного хода
+      if (this.lookForPossibles() == false) continue;
+
+      // Нет линий и есть ходы - прерываем цикл
+      isPlayable = true;
     }
 
-    // this.findAndRemoveMatches();
   },
 
 
@@ -215,7 +231,6 @@ Board.prototype = {
     var mouse = this.getMouse(e);
     var gems = this.gems;
 
-
     for (var i = 0; i < this.rows; i++){
       for (var j = 0; j < this.cols; j++){
         if (gems[i][j] !== undefined && gems[i][j].contains(mouse.x, mouse.y)){
@@ -226,7 +241,7 @@ Board.prototype = {
 
           // Повторный клик на первой фишке    
           } else if (this.firstSelection == gems[i][j]){
-            console.log(gems[i][j].row, gems[i][j].col)
+            console.log(gems[i][j].row, gems[i][j].col, gems[i][j].y)
             this.firstSelection = undefined;
 
           // Клик на второй фишке
@@ -237,10 +252,9 @@ Board.prototype = {
             if ((this.firstSelection.row == gems[i][j].row) && (Math.abs(this.firstSelection.col - gems[i][j].col) == 1) ||
                 (this.firstSelection.col == gems[i][j].col) && (Math.abs(this.firstSelection.row - gems[i][j].row) == 1)) {
               
-              console.log('neibours', i, j);
               this.makeSwap(this.firstSelection, gems[i][j])
               this.firstSelection = undefined;
- 
+
             // Нет соседства, скидываем выбор с первой фишки     
             } else {
               this.firstSelection = gems[i][j];
@@ -264,7 +278,8 @@ Board.prototype = {
 
     // Если передвинутые камни не создают линию - поменять их местами обратно
     if (this.lookForMatches().length == 0){
-      this.swapGems(gem1, gem2);
+      // this.swapGems(gem1, gem2);
+      setTimeout(this.swapGems.bind(this, gem1, gem2), 400)
     } else {
       this.isSwapped = true;
     }
@@ -272,10 +287,10 @@ Board.prototype = {
 
 
   //  Обмен местами двух камней
-  swapGems: function(gem1, gem2){
+  swapGems: function(gem1, gem2, backSwap){
     console.log('swap')
 
-    // Обменять у обоих камней указанные параметры
+    // Обмениваем значения row и col
     var tempRow = gem1.row;
     var tempCol = gem1.col;
     gem1.row = gem2.row;
@@ -283,6 +298,7 @@ Board.prototype = {
     gem2.row = tempRow;
     gem2.col = tempCol;
 
+    // Изменяем позицию в сетке
     this.gems[gem1.row][gem1.col] = gem1;
     this.gems[gem2.row][gem2.col] = gem2;
   },
@@ -330,7 +346,7 @@ Board.prototype = {
       this.isDropped = false;
       this.findAndRemoveMatches();
 
-      this.removedGems = [0,0,0,0,0,0,0,0];
+      this.removedInCols = [0,0,0,0,0,0,0,0];
  
     // все обмены завершены    
     } else if (this.isSwapped && !this.isMoved) {
@@ -406,48 +422,41 @@ Board.prototype = {
   },
 
 
-tweenFunction: function(gem, position, duration, easing){
-  return new TWEEN.Tween(gem)
-          .to(position, duration)
-          .easing(TWEEN.Easing.Linear.None)
-          .start();
-},
-
   //  Поиск и удаление линий из одинаковых камней
   findAndRemoveMatches: function(){
     console.log('findAndRemoveMatches')
     
-    var self = this;
     var gems = this.getAllGems();
     var matches = this.lookForMatches();
-    var tweenOut;
-    var isRemove = false;
-    var isCreated = false;
     var isBombExploded = false;
+
     var specialGem = this.findSpecialTiles(matches);
 
 
     for (var i = 0; i < matches.length; i++){
+      for (var j = 0; j < matches[i].length; j++){
       var numPoints = matches[i].length;
       this.updateScore(numPoints);
-      for (var j = 0; j < matches[i].length; j++){
         var m = matches[i][j];
-        if (m.type == 'bomb'){
-          isBombExploded = this.bombExplosion(m.row, m.col);
-        }
 
-        if (gems[m.row][m.col]){
-          this.removedGems[m.col]++;
-          gems[m.row][m.col] = undefined;
-          this.affectAbove(m);
+        if (m.type == 'bomb'){
+          // isBombExploded = this.bombExplosion(m.row, m.col);
         }
+        // Подсчитать количество удалённых камней в каждом столбце
+        this.removedInCols[m.col]++;
+        this.removedGems.push(gems[m.row][m.col]);
+        gems[m.row][m.col] = undefined;
+
+        // Переместить вышележещие камни вниз
+        this.affectAbove(m);
       }
     }
 
-    if (specialGem){
-      this.createSpecialGem(specialGem)
-    }
+    // if (specialGem){
+    //   this.createSpecialGem(specialGem)
+    // }
 
+    // Заполнить пустоты новыми камнями
     this.refill();
 
     if(matches.length == 0){
@@ -523,7 +532,8 @@ tweenFunction: function(gem, position, duration, easing){
 
   affectAbove: function(gem) {
     // console.log('affectAbove');
-    var gems = this.gems;
+    var gems = this.getAllGems();
+
     for (var row = gem.row - 1; row >= 0; row--){
       if(gems[row][gem.col] !== undefined ){        
         gems[row][gem.col].row++;
@@ -538,19 +548,17 @@ tweenFunction: function(gem, position, duration, easing){
     var gems = this.getAllGems();
     var colorsLength = this.gemColors.length;
 
-    this.removedGems;
-
     for(var row = 0; row < this.rows; row++){
       for(var col = 0; col < this.cols; col++){
         if(gems[row][col] == undefined){
           var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];            
 	        var gem = new Gem(this.gemPosX[col], 0, this.gemSize, this.gemSize, color);
           // gem.y -= this.gemSizeSpaced*(this.rows - row);
-          gem.y = -this.gemSizeSpaced - this.gemSizeSpaced * (this.removedGems[col]--);
 
-          // console.log(row)
+          // Переместить камень вверх (на количество удалённых в столбце камней + 1 камень)
+          gem.y = -this.gemSizeSpaced * (1 + this.removedInCols[col]--);
+
           this.addGem(gem, row, col);
-
           this.isDropped = true;
         }
       }
@@ -672,8 +680,8 @@ tweenFunction: function(gem, position, duration, easing){
   createBomb: function (row, col, fill) {    
     console.log('bomb')
     // Заменить уровень прозрачности цвета на непрозрачный
-    var fill = fill.slice(0, -3) + '1)';
-    var bomb = new Gem(this.gemPosX[col]-90, this.gemPosY[row], this.gemSize, this.gemSize, fill, 'bomb');
+    // var fill = fill.slice(0, -3) + '1)';
+    var bomb = new Gem(this.gemPosX[col], this.gemPosY[row], this.gemSize, this.gemSize, fill, 'bomb');
     this.addGem(bomb, row, col);
   },
 
