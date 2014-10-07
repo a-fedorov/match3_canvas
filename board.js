@@ -43,6 +43,7 @@ function Board(canvas){
   this.removedGems = [];
   this.removedAlpha = 1;
 
+  this.prevSelection = []
   // Выделение текущего выбранного объекта
   this.firstSelection;
   this.selectionColor = 'rgba(0,0,0,.8)';
@@ -84,22 +85,22 @@ function Board(canvas){
   canvas.addEventListener('mouseup', function(e){ self.swapOnDragComplete(e); }, false);
 
   // Тестовое заполнение игрового поля
-  this.testTable = [[4,2,3,2,1,5,3,4], 
+  this.testTable = [[4,2,3,2,1,5,0,4], 
                     [2,1,2,4,2,2,3,2], 
-                    [3,2,3,2,3,3,2,3], 
-                    [5,3,4,1,0,3,1,4],
-                    [3,2,5,3,5,4,4,3],
-                    [3,2,3,1,0,1,4,4],
-                    [5,3,2,2,1,3,1,4],
-                    [2,5,3,5,0,4,3,1]];
+                    [0,2,3,2,3,3,2,3], 
+                    [5,0,0,1,0,3,2,4],
+                    [0,2,1,3,5,4,4,3],
+                    [0,2,5,1,0,1,3,4],
+                    [4,3,5,2,1,3,1,4],
+                    [5,5,3,5,5,4,4,1]];
 
 
   // Шаблоны для поиска L-T фигур
   this.neededForPatterns = {
     'L-normal':   [[2,0]],
-    'L-flipX':    [[2,2]],
+    'L-flipX':    [[0,0]],
     'L-flipXY':   [[0,2]],
-    'L-flipY':    [[0,0]],
+    'L-flipY':    [[2,2]],
 
     'T-normal':   [[0,1]],
     'T-flipY':    [[2,1]],
@@ -108,10 +109,10 @@ function Board(canvas){
   };
 
   this.patterns = {
-    'L-normal':   [[2,2],[2,1],[1,0],[0,0]],
-    'L-flipX':    [[2,1],[2,0],[1,2],[0,2]],
-    'L-flipXY':   [[2,2],[1,2],[0,1],[0,0]],
-    'L-flipY':    [[2,0],[1,0],[0,2],[0,1]],
+    'L-normal':   [[0,0],[1,0],[2,1],[2,2]],
+    'L-flipX':    [[0,1],[0,2],[1,0],[2,0]],
+    'L-flipXY':   [[0,0],[0,1],[1,2],[2,2]],
+    'L-flipY':    [[2,0],[2,1],[1,2],[0,2]],
     
     'T-normal':   [[0,0],[0,2],[1,1],[2,1]],
     'T-flipY':    [[2,0],[2,2],[1,1],[0,1]],
@@ -257,27 +258,27 @@ Board.prototype = {
     var isPlayable = false;
     
     // Цикл, пока не создадим играбельную сетку
-    while (!isPlayable){
+    // while (!isPlayable){
       // Добавляем фишки
       for (var i = 0; i < this.rows; i++){
         this.gems[i] = [];
         for (var j = 0; j < this.cols; j++){
-          var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
-          // var color = this.gemColors[this.testTable[i][j]];
+          // var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
+          var color = this.gemColors[this.testTable[i][j]];
           var g = new Gem(this.gemPosX[j], this.gemPosY[i], this.gemSize, this.gemSize, color);
           this.addGem(g, i, j);
         }
       }
 
       // Пробуем снова если на поле есть линии
-      if (this.lookForMatches().length != 0) continue;
+      // if (this.lookForMatches().length != 0) continue;
 
       // Пробуем снова если на поле нет ни одного хода
-      if (this.lookForPossibles() == false) continue;
+      // if (this.lookForPossibles() == false) continue;
 
       // Нет линий и есть ходы - прерываем цикл
       isPlayable = true;
-    }
+    // }
 
   },
 
@@ -314,6 +315,9 @@ Board.prototype = {
             if ((this.firstSelection.row == gems[i][j].row) && (Math.abs(this.firstSelection.col - gems[i][j].col) == 1) ||
                 (this.firstSelection.col == gems[i][j].col) && (Math.abs(this.firstSelection.row - gems[i][j].row) == 1)) {
               
+              this.prevSelection[0] = this.firstSelection;
+              this.prevSelection[1] = gems[i][j];
+
               this.makeSwap(this.firstSelection, gems[i][j]);
               this.firstSelection = null;
 
@@ -502,12 +506,12 @@ Board.prototype = {
           if (isBombExploded) {
             console.log('Бимба взирвалась');
 
+            if (gems[m.row - 1][m.col-1] && gems[m.row-1][m.col+1] && gems[m.row-1][m.col])
             // Удалить бомбу
             gems[m.row][m.col] = null;
 
             if (m.row + 1 < this.rows) {
-              console.log(gem.row, gem.col, m.row, m.col)
-              this.affectAbove(gems[m.row+1][m.col])
+              this.affectAbove(gems[m.row+1][m.col]);
             }
           }
 
@@ -641,19 +645,54 @@ Board.prototype = {
     var m = matches;
     var fill;
     var specialGems = [];
+    var row = -1;
+    var col = 0;
+    var prev0 = this.prevSelection[0];
+    var prev1 = this.prevSelection[1];
+
+
 
     // Поиск 4inRow и 5inRow
     for (var i = 0; i < m.length; i++){
       for (var j = 0; j < m[i].length; j++){
+        var cur = m[i][j];
+
         if (m[i].length == 4){
-          console.log(m[i].length + ' in row');
-          specialGems.push({row: m[i][j].row, col: m[i][j].col, type: 'bombHoriz', fill: m[i][j].fill});
+          console.log(cur.row, cur.col, prev0.row, prev0.col, prev1.row, prev1.col)
+          
+          if (cur.row == prev0.row){
+            row = prev0.row
+          } else {
+            row = prev1.row;
+          }
+
+          if (cur.col == prev0.col){
+            col = prev0.col;
+          } else {
+            col = prev1.col;
+          }
+
+          if (Math.abs(row - cur.row) > 2 && Math.abs(col - cur.col) > 2){
+            return;
+          }
+          console.log(row, col)
+
+          console.log(m[i].length + ' in row');          
+
+          specialGems.push({row:  row, col: col, type: 'bombHoriz', fill: m[i][j].fill});
           break;
+
         } else if (m[i].length == 5){
           console.log('5 in row');
-          specialGems.push({row: m[i][j+4].row, col: m[i][j+4].col, type: 'bombColor', fill: m[i][j+4].fill});
+          specialGems.push({row: m[i][j+2].row, col: m[i][j+2].col, type: 'bombColor', fill: m[i][j+4].fill});
           break;
         }
+      }
+    }
+
+    for (var row = 0; row < this.rows; row++){
+      for (var col = 0; col < this.cols; col++){
+
       }
     }
 
@@ -760,11 +799,13 @@ Board.prototype = {
 
     // Если бомба горизонтальная
     // Удалить всю вертикальную линию камней если комбинация с бомбой в столбце
-    if (type == 'bombHoriz' && gems[bombRow][bombCol].fill == gems[bombRow+1][bombCol].fill){
+    if (type == 'bombHoriz' && bombRow + 1 < this.rows && gems[bombRow][bombCol].fill == gems[bombRow+1][bombCol].fill){
       for (var row = 0; row < this.rows; row++){
         this.affectAbove(gems[row][bombCol])
       }
-        
+      
+      // Удалить последний камень
+      gems[this.rows-1][bombCol] = null;
       this.removedInCols[bombCol] = 6;
       return true;
       
@@ -778,6 +819,8 @@ Board.prototype = {
         this.removedInCols[col]++;
       }
 
+
+
       return true;
     }
 
@@ -790,7 +833,7 @@ Board.prototype = {
         for(var col = 0; col < this.cols; col++){
           if (gems[row][col] && bombFill == gems[row][col].fill){
             this.affectAbove(gems[row][col])
-            // this.removedInCols[col]++;
+            this.removedInCols[col]++;
           }
         }
       }
