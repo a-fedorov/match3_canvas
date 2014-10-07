@@ -89,9 +89,9 @@ function Board(canvas){
                     [2,1,2,4,2,2,3,2], 
                     [0,2,3,2,3,3,2,3], 
                     [5,0,0,1,0,3,2,4],
-                    [0,2,1,3,5,4,4,3],
-                    [0,2,5,1,0,1,3,4],
-                    [4,3,5,2,1,3,1,4],
+                    [0,0,4,3,5,4,4,3],
+                    [0,1,5,1,0,1,3,4],
+                    [4,0,5,2,1,3,1,4],
                     [5,5,3,5,5,4,4,1]];
 
 
@@ -804,9 +804,9 @@ Board.prototype = {
         this.affectAbove(gems[row][bombCol])
       }
       
+      this.removedInCols[bombCol] = this.rows - 1;
       // Удалить последний камень
       gems[this.rows-1][bombCol] = null;
-      this.removedInCols[bombCol] = 6;
       return true;
       
     } 
