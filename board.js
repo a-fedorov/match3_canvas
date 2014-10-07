@@ -86,11 +86,11 @@ function Board(canvas){
   // Тестовое заполнение игрового поля
   this.testTable = [[4,2,3,2,1,5,3,4], 
                     [3,1,2,4,2,1,3,2], 
-                    [4,3,3,2,3,3,2,3], 
-                    [3,0,3,1,0,2,1,4],
+                    [3,4,3,2,3,3,2,3], 
+                    [2,3,4,1,0,2,1,4],
                     [3,2,5,3,5,4,4,3],
-                    [1,3,3,1,4,1,2,4],
-                    [3,0,2,2,1,3,1,4],
+                    [3,2,3,1,4,1,2,4],
+                    [5,3,2,2,1,3,1,4],
                     [2,5,3,5,0,4,3,1]];
 
 
@@ -786,13 +786,17 @@ Board.prototype = {
 
     // Если бомба цветная - удалить все камни того же цвета что и бомба
     if (type == 'bombColor'){
+      var bombFill = gems[bombRow][bombCol].fill;
       
       // Найти все камни одного цвета что и бомба
       for(var row = 0; row < this.rows; row++){
         for(var col = 0; col < this.cols; col++){
           if (gems[row][col] && bombFill == gems[row][col].fill){
-            gems[row][col] = null;
-            this.removedInCols[col]++;
+            // gems[row][col] = null;
+            if (gems[row][col]){
+              this.affectAbove(gems[row][col])
+              this.removedInCols[col]++;
+            }
           }
         }
       }
