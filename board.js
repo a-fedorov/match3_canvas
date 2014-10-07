@@ -85,11 +85,11 @@ function Board(canvas){
 
   // Тестовое заполнение игрового поля
   this.testTable = [[4,2,3,2,1,5,3,4], 
-                    [3,1,2,4,2,1,3,2], 
-                    [3,4,3,2,3,3,2,3], 
-                    [2,3,4,1,0,2,1,4],
+                    [2,1,2,4,2,2,3,2], 
+                    [3,2,3,2,3,3,2,3], 
+                    [5,3,4,1,0,3,1,4],
                     [3,2,5,3,5,4,4,3],
-                    [3,2,3,1,4,1,2,4],
+                    [3,2,3,1,0,1,4,4],
                     [5,3,2,2,1,3,1,4],
                     [2,5,3,5,0,4,3,1]];
 
@@ -257,27 +257,27 @@ Board.prototype = {
     var isPlayable = false;
     
     // Цикл, пока не создадим играбельную сетку
-    // while (!isPlayable){
+    while (!isPlayable){
       // Добавляем фишки
       for (var i = 0; i < this.rows; i++){
         this.gems[i] = [];
         for (var j = 0; j < this.cols; j++){
-          // var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
-          var color = this.gemColors[this.testTable[i][j]];
+          var color = this.gemColors[ Math.floor( Math.random() * colorsLength )];
+          // var color = this.gemColors[this.testTable[i][j]];
           var g = new Gem(this.gemPosX[j], this.gemPosY[i], this.gemSize, this.gemSize, color);
           this.addGem(g, i, j);
         }
       }
 
       // Пробуем снова если на поле есть линии
-      // if (this.lookForMatches().length != 0) continue;
+      if (this.lookForMatches().length != 0) continue;
 
       // Пробуем снова если на поле нет ни одного хода
-      // if (this.lookForPossibles() == false) continue;
+      if (this.lookForPossibles() == false) continue;
 
       // Нет линий и есть ходы - прерываем цикл
       isPlayable = true;
-    // }
+    }
 
   },
 
@@ -475,7 +475,7 @@ Board.prototype = {
 
   //  Поиск и удаление линий из одинаковых камней
   findAndRemoveMatches: function(){
-    console.log('findAndRemoveMatches');
+    // console.log('findAndRemoveMatches');
     
     var gems = this.getAllGems();
     var matches = this.lookForMatches();
@@ -495,21 +495,24 @@ Board.prototype = {
         var gem = gems[m.row][m.col];
 
         // Если образовано линию с бомбой - взорвать бомбу
-        if (gem && (gem.type == 'bomb' || 
-                    gem.type == 'bombHoriz' || 
-                    gem.type == 'bombColor')){
+        if (gem && (gem.type == 'bomb' || gem.type == 'bombHoriz' || gem.type == 'bombColor')){
           isBombExploded = this.bombExplosion(m.row, m.col, m.type);
+          
+          // Если взрыв произошел - опустить вышележащие камни вниз на пустые клетки
           if (isBombExploded) {
             console.log('Бимба взирвалась');
-            gems[m.row][m.col] = null;
-            this.affectAbove(gems[m.row+1][m.col])
 
+            // Удалить бомбу
+            gems[m.row][m.col] = null;
+
+            if (m.row + 1 < this.rows) {
+              console.log(gem.row, gem.col, m.row, m.col)
+              this.affectAbove(gems[m.row+1][m.col])
+            }
           }
 
         // Если бомбы нет - убрать текущий камень а камни над ним опустить вниз
         } else {
-          // this.removedGems.push(gems[m.row][m.col]);
-
 
           gems[m.row][m.col] = null;
 
@@ -601,8 +604,8 @@ Board.prototype = {
 
   affectAbove: function(gem) {
     // console.log('affectAbove');
+    if (!gem) return;
     var gems = this.getAllGems();
-
     for (var row = gem.row - 1; row >= 0; row--){
       if(gems[row][gem.col] !== null ){        
         gems[row][gem.col].row++;
@@ -731,11 +734,12 @@ Board.prototype = {
       var aroundGems = [];
       aroundGems = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
 
+      // Если нулевой столбец - взорвать 5 камней вокруг
       if (bombCol == 0){
         aroundGems = [[-1,0],[1,0],[-1,1],[0,1],[1,1],[0,0]];
       }
       
-      // Если последняя строка - взорвать только 6 камней
+      // Если последняя строка - взорвать 5 камней вокруг
       if (bombRow == this.rows - 1){
         aroundGems = [[0,-1],[0,1],[-1,-1],[-1,0],[-1,1],[0,0]];
       }
@@ -755,33 +759,26 @@ Board.prototype = {
 
 
     // Если бомба горизонтальная
-    // Удалить всю горизонтальную линию камней если комбинация с бомбой в строке
-    if (type == 'bombHoriz'){
-        this.affectAbove(gems[bombRow][bombCol]);
-
-        for (var row = 0; row < this.rows; row++){
-          gems[row][bombCol] = null;
-          // this.affectAbove(gems[])
-          // gems[row][bombCol]
-          // this.removedGems.push(gems[row][bombCol]);
-        }
+    // Удалить всю вертикальную линию камней если комбинация с бомбой в столбце
+    if (type == 'bombHoriz' && gems[bombRow][bombCol].fill == gems[bombRow+1][bombCol].fill){
+      for (var row = 0; row < this.rows; row++){
+        this.affectAbove(gems[row][bombCol])
+      }
         
-        this.removedInCols[bombCol] = 5;
-        return true;
+      this.removedInCols[bombCol] = 6;
+      return true;
       
-      // Или удалить всю вертикальную линию камней если комбинация с бомбой в столбце
-      // } else {
+    } 
 
-      //   for (var col = 0; col < this.cols; col++){
-      //     this.affectAbove(gems[bombRow][col])
-      //     // gems[bombRow][col] = null;
-      //     this.removedInCols[col]++;
-      //   }
+     // Удалить всю горизонтальную линию камней если комбинация с бомбой в строке
+    if (type == 'bombHoriz'){
+      console.log('bombHor')
+      for (var col = 0; col < this.cols; col++){
+        this.affectAbove(gems[bombRow][col])
+        this.removedInCols[col]++;
+      }
 
-
-        
-      //   return true;
-      // } 
+      return true;
     }
 
     // Если бомба цветная - удалить все камни того же цвета что и бомба
@@ -793,7 +790,7 @@ Board.prototype = {
         for(var col = 0; col < this.cols; col++){
           if (gems[row][col] && bombFill == gems[row][col].fill){
             this.affectAbove(gems[row][col])
-            this.removedInCols[col]++;
+            // this.removedInCols[col]++;
           }
         }
       }
@@ -871,12 +868,15 @@ Board.prototype = {
     var element = this.canvas, offsetX = 0, offsetY = 0, mx, my;
     
     // Compute the total offset
-    if (element.offsetParent !== null) {
-      do {
-        offsetX += element.offsetLeft;
-        offsetY += element.offsetTop;
-      } while ((element = element.offsetParent));
-    }
+    // if (element.offsetParent !== null) {
+    //   do {
+    //     offsetX += element.offsetLeft;
+    //     offsetY += element.offsetTop;
+    //   } while ((element = element.offsetParent));
+    // }
+
+    offsetX += element.offsetLeft;
+    offsetY += element.offsetTop;
 
     mx = e.pageX - offsetX;
     my = e.pageY - offsetY;
