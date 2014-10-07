@@ -792,11 +792,8 @@ Board.prototype = {
       for(var row = 0; row < this.rows; row++){
         for(var col = 0; col < this.cols; col++){
           if (gems[row][col] && bombFill == gems[row][col].fill){
-            // gems[row][col] = null;
-            if (gems[row][col]){
-              this.affectAbove(gems[row][col])
-              this.removedInCols[col]++;
-            }
+            this.affectAbove(gems[row][col])
+            this.removedInCols[col]++;
           }
         }
       }
