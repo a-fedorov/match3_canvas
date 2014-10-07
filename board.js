@@ -85,8 +85,8 @@ function Board(canvas){
 
   // Тестовое заполнение игрового поля
   this.testTable = [[4,2,3,2,1,5,3,4], 
-                    [3,1,2,4,1,1,3,2], 
-                    [4,3,3,2,3,3,2,4], 
+                    [3,1,2,4,2,1,3,2], 
+                    [4,3,3,2,3,3,2,3], 
                     [3,0,3,1,0,2,1,4],
                     [3,2,5,3,5,4,4,3],
                     [1,3,3,1,4,1,2,4],
@@ -499,11 +499,17 @@ Board.prototype = {
                     gem.type == 'bombHoriz' || 
                     gem.type == 'bombColor')){
           isBombExploded = this.bombExplosion(m.row, m.col, m.type);
-          console.log('Бимба взирвалась');
+          if (isBombExploded) {
+            console.log('Бимба взирвалась');
+            gems[m.row][m.col] = null;
+            this.affectAbove(gems[m.row+1][m.col])
+
+          }
 
         // Если бомбы нет - убрать текущий камень а камни над ним опустить вниз
         } else {
           // this.removedGems.push(gems[m.row][m.col]);
+
 
           gems[m.row][m.col] = null;
 
@@ -723,7 +729,11 @@ Board.prototype = {
     // Если бомба обычная - удалить 8 камней вокруг неё
     if (type == 'bomb'){
       var aroundGems = [];
-      aroundGems = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1],[0,0]];
+      aroundGems = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+
+      if (bombCol == 0){
+        aroundGems = [[-1,0],[1,0],[-1,1],[0,1],[1,1],[0,0]];
+      }
       
       // Если последняя строка - взорвать только 6 камней
       if (bombRow == this.rows - 1){
@@ -733,7 +743,11 @@ Board.prototype = {
       for (var i = 0; i < aroundGems.length; i++){
         var row = bombRow + aroundGems[i][0];
         var col = bombCol + aroundGems[i][1];
-        gems[row][col] = null;
+
+        if (gems[row][col]){
+          this.affectAbove(gems[row][col])
+          this.removedInCols[col]++;
+        }
       }
 
       return true;
@@ -747,6 +761,9 @@ Board.prototype = {
 
         for (var row = 0; row < this.rows; row++){
           gems[row][bombCol] = null;
+          // this.affectAbove(gems[])
+          // gems[row][bombCol]
+          // this.removedGems.push(gems[row][bombCol]);
         }
         
         this.removedInCols[bombCol] = 5;
