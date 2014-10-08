@@ -52,6 +52,9 @@ function Board(canvas){
   // Список режимов игры
   // this.gameMode;
 
+  this.alpha = 0;
+  this.delta = 0.01;
+
   // Инидикация набранных очков
   this.score = 0;
   this.levelPointsBar = indicators.level;
@@ -129,51 +132,19 @@ Board.prototype = {
     var ctx = this.ctx;
     var gems = this.gems;
     this.clear();
-    
+
     // Отрисовка всех камней
     for (var i = 0; i < this.rows; i++){
       for (var j = 0; j < this.cols; j++){
-        if (gems[i][j] == null) continue;
+        // if (gems[i][j] == null) continue;
         
         var g = gems[i][j];
         var type = gems[i][j].type;
 
         g.draw(ctx);
 
-        // Добавить квадрат размером в центре камня для обычной бомбы
-        if (type == 'bomb'){
-          ctx.save();
-          ctx.lineWidth = 2;
-          ctx.strokeRect(g.x + g.w/4, g.y + g.h/4, g.w/2, g.h/2);
-          ctx.restore();
-        
-        // Добавить три горизонтальные полосы для горизонтальной бомбы
-        } else if(type == 'bombHoriz'){
-          ctx.save();
-          
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(g.x, g.y + g.h/3);
-          ctx.lineTo(g.x + g.w, g.y + g.h/3);
-          ctx.moveTo(g.x, g.y + g.h/2);
-          ctx.lineTo(g.x + g.w, g.y + g.h/2);
-          ctx.moveTo(g.x, g.y + g.h/3*2);
-          ctx.lineTo(g.x + g.w, g.y + g.h/3*2);
-          ctx.stroke();
-          ctx.restore();
-
-        // Добавить рамку из R,G,B цветов для цветной бомбы
-        } else if (type == 'bombColor'){
-          ctx.save();
-          ctx.lineWidth = 2;
-          ctx.strokeStyle = 'rgba(0,0,255,1)';  
-          ctx.strokeRect(g.x, g.y, g.w, g.h);
-          ctx.strokeStyle = 'rgba(255,0,0,1)';
-          ctx.strokeRect(g.x+2, g.y+2, g.w-4, g.h-4);
-          ctx.strokeStyle = 'rgba(0,255,0,1)';
-          ctx.strokeRect(g.x+4, g.y+4, g.w-8, g.h-8);
-          ctx.restore();
-
+        if (type == 'bomb' || type == 'bombHoriz' || type == 'bombColor'){
+          this.drawBomb(g, type);
         }
       }
     }
@@ -241,15 +212,53 @@ Board.prototype = {
     this.finishDragPos = {x: 0, y: 0};
   },
 
+  
+  drawBomb: function(gem, type){
+    var ctx = this.ctx;
+
+    // Добавить квадрат размером в центре камня для обычной бомбы
+    if (type == 'bomb'){
+      ctx.save();    
+      ctx.lineWidth = 2;
+      ctx.strokeRect(gem.x + gem.w/4, gem.y + gem.h/4, gem.w/2, gem.h/2);
+      ctx.restore();
+    
+    // Добавить три горизонтальные полосы для горизонтальной бомбы
+    } else if(type == 'bombHoriz'){
+      ctx.save();
+      
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(gem.x, gem.y + gem.h/3);
+      ctx.lineTo(gem.x + gem.w, gem.y + gem.h/3);
+      ctx.moveTo(gem.x, gem.y + gem.h/2);
+      ctx.lineTo(gem.x + gem.w, gem.y + gem.h/2);
+      ctx.moveTo(gem.x, gem.y + gem.h/3*2);
+      ctx.lineTo(gem.x + gem.w, gem.y + gem.h/3*2);
+      ctx.stroke();
+      ctx.restore();
+
+    // Добавить рамку из R,G,B цветов для цветной бомбы
+    } else if (type == 'bombColor'){
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(0,0,255,1)';  
+      ctx.strokeRect(gem.x, gem.y, gem.w, gem.h);
+      ctx.strokeStyle = 'rgba(255,0,0,1)';
+      ctx.strokeRect(gem.x+2, gem.y+2, gem.w-4, gem.h-4);
+      ctx.strokeStyle = 'rgba(0,255,0,1)';
+      ctx.strokeRect(gem.x+4, gem.y+4, gem.w-8, gem.h-8);
+      ctx.restore();
+
+    }
+  },
+
 
   // Очистка всего поля
   clear: function() {
     this.ctx.clearRect(0, 0, this.width, this.height);
   },
 
-  removeGems: function(){
-
-  },
 
   getRow: function(rowIndex){
     var gems = this.getAllGems();
