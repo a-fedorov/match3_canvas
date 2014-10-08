@@ -179,29 +179,20 @@ Board.prototype = {
       if (prevSel){
         // Если свайп вправо - выбрать фишку справа
         if (distanceX >= this.dragDistance && (prevSel.col + 1 < this.cols)){
-          x = e.pageX + this.gemSize - this.dragDistance;
-          y = e.pageY;
+          this.selectGem({pageX: e.pageX + this.gemSize - this.dragDistance, pageY: e.pageY})
 
         // Если свайп влево - выбрать фишку слева
         } else if (distanceX <= -this.dragDistance && (prevSel.col - 1 >= 0)){
-          x = e.pageX - this.gemSize + this.dragDistance;
-          y = e.pageY;
+          this.selectGem({pageX: e.pageX - this.gemSize + this.dragDistance, pageY: e.pageY})
 
         // Если свайп вниз - выбрать фишку снизу
         } else if (distanceY >= this.dragDistance && (prevSel.row + 1 < this.rows)){
-          x = e.pageX;
-          y = e.pageY + this.gemSize - this.dragDistance;
+          this.selectGem({pageX: e.pageX, pageY: e.pageY + this.gemSize - this.dragDistance})
 
         // Если свайп вверх - выбрать фишку сверху
         } else if (distanceY <= -this.dragDistance && (prevSel.row - 1 >= 0)){
-          x = e.pageX;
-          y = e.pageY - this.gemSize + this.dragDistance;
+          this.selectGem({pageX: e.pageX, pageY: e.pageY - this.gemSize + this.dragDistance})
         }
-      }
-
-      // Выбрать вторую фишку для обмена
-      if (x && y) {
-        this.selectGem({pageX: x, pageY: y});
       }
     }
   },
