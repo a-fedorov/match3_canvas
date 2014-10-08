@@ -528,8 +528,8 @@ Board.prototype = {
               this.affectAbove(gems[m.row+1][m.col]);
 
             // Если бомба в последнем ряду - только сдвинуть всё над ней вниз
-            // } else if (m.row == this.rows-1){
-              // this.affectAbove(gems[m.row][m.col]);
+            } else if (m.row == this.rows-1){
+              this.affectAbove(gems[m.row][m.col]);
             }
           }
 
