@@ -13,7 +13,7 @@ function Board(canvas){
   this.offsetX = this.offsetY = 5;
   
   this.gems = []; // все камни на игровом поле
-  this.gemSize = 80;
+  this.gemSize = 85;
   this.gemSizeSpaced = this.gemSize + this.offsetX;
 
   this.gemColors = [
@@ -249,6 +249,26 @@ Board.prototype = {
 
   removeGems: function(){
 
+  },
+
+  getRow: function(rowIndex){
+    var gems = this.getAllGems();
+    var row = [];
+    for (var col = 0; col < this.cols; col++){
+      row.push(gems[rowIndex][col]);
+    }
+
+    return row;
+  },
+                     
+  getColumn: function(columnIndex){
+    var gems = this.getAllGems();
+    var column = [];
+    for (var row = 0; row < this.rows; row++){
+      column.push(gems[row][columnIndex]);
+    }
+
+    return column;
   },
 
   // Заполнение поля камнями
