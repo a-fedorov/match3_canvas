@@ -7,15 +7,15 @@ function Game(canvas) {
 Game.prototype = {
   start: function (mode) {
     this.board.spawn();
-    this.board.setGameMode(mode);
+    // this.board.setGameMode(mode);
 
-    if (mode == 'normal'){
-      this.startNormalMode();
-    } else if (mode == 'time'){
-      this.startTimeMode();
-    } else if (mode == 'endless'){
-      this.startEndlessMode();
-    }
+    // if (mode == 'normal'){
+    //   this.startNormalMode();
+    // } else if (mode == 'time'){
+    //   this.startTimeMode();
+    // } else if (mode == 'endless'){
+    //   this.startEndlessMode();
+    // }
 
     this.startAnimation();
   },
